@@ -3,18 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.0.0" },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "npm run typecheck && vite build",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "fetch:connectome": "node server/fetchConnectome.ts",
+    "capture": "node --env-file-if-exists=.env server/capture.ts",
+    "probe": "node server/tools/probe.ts",
+    "arena": "node server/tools/arena.ts",
+    "check": "node server/tools/checks.ts",
+    "record": "node server/tools/record.ts"
   },
   "dependencies": {
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@types/node": "24.19.0",
     "@types/three": "0.186.0",
     "typescript": "7.0.2",
     "vite": "8.3.1"
