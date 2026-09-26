@@ -1,0 +1,16 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #292e32;
+  background: #f5f1e8;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1000px; margin: auto; padding: 40px 24px; }
+.eyebrow { color: #655940; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; }
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 12px 0; }
+p { line-height: 1.6; }
+#scene { width: 100%; height: clamp(280px, 55vh, 520px); overflow: hidden; border-radius: 24px; }
+canvas { display: block; }
+.caption { color: #625d53; font-size: 0.875rem; }
