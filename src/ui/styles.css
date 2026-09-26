@@ -1,16 +1,109 @@
 :root {
-  font-family: system-ui, sans-serif;
-  color: #292e32;
-  background: #f5f1e8;
+  font-family: 'Avenir Next', Avenir, system-ui, sans-serif;
+  color: #293b30;
+  background: #f6f3eb;
   font-synthesis: none;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
-
 * { box-sizing: border-box; }
 body { margin: 0; }
-main { max-width: 1000px; margin: auto; padding: 40px 24px; }
-.eyebrow { color: #655940; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; }
-h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 12px 0; }
+button, input { font: inherit; }
+button, summary, input[type='checkbox'] { cursor: pointer; }
+button:disabled, input:disabled { cursor: not-allowed; }
+button:disabled { opacity: 0.45; }
+:focus-visible { outline: 3px solid #98632d; outline-offset: 5px; }
 p { line-height: 1.6; }
-#scene { width: 100%; height: clamp(280px, 55vh, 520px); overflow: hidden; border-radius: 24px; }
+[hidden] { display: none !important; }
+.app-shell { max-width: 1280px; margin: auto; padding: 0 48px 24px; }
+.topbar { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #dddccd; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: inherit; text-decoration: none; font-size: 27px; font-weight: 750; letter-spacing: -1.5px; }
+.brand svg { width: 33px; height: 33px; }
+.brand-dot { color: #9b6038; }
+.topbar-note { font-size: 12px; color: #646b5c; }
+.mode-badge { font-size: 11px; font-weight: 600; padding: 7px 11px; border: 1px solid #d4c5a6; border-radius: 20px; color: #725225; background: #eee6d3; }
+.intro { text-align: center; padding: 30px 0 24px; }
+.eyebrow { margin: 0; font-size: 10px; font-weight: 650; letter-spacing: 1.8px; text-transform: uppercase; color: #67715d; }
+h1 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(32px, 4.2vw, 54px); font-weight: 400; letter-spacing: -2px; line-height: 1.1; margin: 12px 0; }
+h1 em { color: #6c8066; font-weight: 400; }
+.intro > p:last-child { font-size: 13px; margin: 12px 0 0; color: #626b5d; }
+.experience { background: #eeebdf; border: 1px solid #dfddce; border-radius: 20px; overflow: hidden; }
+.arena-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 20px 26px 0; font-size: 11px; color: #5d6c56; gap: 12px; }
+.arena-toolbar > span:first-child { display: flex; gap: 8px; align-items: center; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #788b66; }
+.arena-note { font-size: 9px; letter-spacing: 1.5px; }
+.stage { position: relative; }
+#scene { position: relative; width: 100%; height: clamp(340px, 43vh, 420px); }
 canvas { display: block; }
-.caption { color: #625d53; font-size: 0.875rem; }
+.marker-labels { position: absolute; inset: 0; pointer-events: none; }
+.marker-label { position: absolute; transform: translate(-50%, -100%); max-width: 38%; padding: 6px 10px; border-radius: 7px; font-size: 11px; font-weight: 600; color: #344636; background: #f9f7edee; border: 1px solid #d6d9c8; text-align: center; overflow-wrap: anywhere; box-shadow: 0 3px 8px #38462b08; }
+.marker-label.is-selected { background: #2f4939; color: #fff9ec; border-color: #2f4939; }
+.stage-footnote { position: absolute; bottom: 2px; width: 100%; text-align: center; font-family: Georgia, serif; font-style: italic; font-size: 12px; color: #727562; pointer-events: none; }
+.restaurant-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 18px 26px; }
+.restaurant-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: #f7f5ed; border: 1px solid #d8dcce; border-radius: 12px; min-width: 0; }
+.restaurant-letter { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: #dfe6d8; color: #4f6b4e; font-family: Georgia, serif; font-size: 22px; }
+.option-1 .restaurant-letter { background: #efddcd; color: #8e5536; }
+.restaurant-card .eyebrow { font-size: 8px; letter-spacing: 1.5px; }
+h3 { font-family: Georgia, serif; font-size: 20px; font-weight: 400; margin: 4px 0 0; overflow-wrap: anywhere; }
+.restaurant-card > div { min-width: 0; }
+.restaurant-outcome { margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.restaurant-card.is-selected { border-color: #6d8460; background: #e3e9d9; animation: reveal 450ms ease-out; }
+.decision { text-align: center; padding: 4px 24px 19px; }
+.decision .eyebrow { font-size: 8px; }
+.decision h2 { font-family: Georgia, serif; font-size: 22px; font-weight: 400; margin: 7px 0; overflow-wrap: anywhere; }
+.decision > p:last-child { font-size: 12px; color: #626957; margin: 0 auto; max-width: 640px; }
+.action-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #faf8f0; border-top: 1px solid #dfddce; padding: 18px 26px; }
+.approval { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 600; }
+.approval input { width: 18px; height: 18px; accent-color: #35543c; margin: 0; }
+.approval small { display: block; font-weight: 400; color: #747966; margin-top: 4px; font-size: 10px; }
+.buttons { display: flex; gap: 10px; }
+.button { padding: 12px 20px; border-radius: 9px; font-size: 12px; font-weight: 600; min-height: 44px; }
+.primary { background: #304b38; color: #fffdf3; border: 1px solid #304b38; min-width: 155px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.primary:not(:disabled):hover { background: #426449; }
+.secondary { border: 1px solid #d8dacd; background: transparent; color: #53604c; }
+.secondary:not(:disabled):hover { background: #eeeee3; }
+.action-error { padding: 0 26px 14px; color: #993c30; font-size: 13px; }
+.footer { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding: 14px 2px; color: #626957; font-size: 10px; }
+.footer > p { margin: 0; }
+.footer details { max-width: 340px; }
+.footer summary { white-space: nowrap; text-align: right; }
+.footer details p { font-size: 12px; }
+.preview-panel { border-top: 1px dashed #d9d5c5; padding-top: 12px; font-size: 11px; color: #6a715d; }
+.preview-panel p { max-width: 700px; }
+.preview-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.preview-buttons button { padding: 9px 12px; background: #ece9de; color: #44523d; border: 1px solid #d4d7c8; border-radius: 6px; min-height: 38px; }
+.scene-error { position: absolute; inset: 20% 15%; display: grid; place-items: center; text-align: center; font-size: 15px; }
+[data-status='error'] .status-dot { background: #aa4d3c; }
+[data-status='error'] .decision h2 { color: #923d32; }
+@keyframes reveal { from { box-shadow: 0 0 0 5px #79976755; } to { box-shadow: 0 0 0 0 #79976700; } }
+@media (max-width: 700px) {
+  .app-shell { padding: 0 18px 22px; }
+  .topbar { min-height: 72px; gap: 12px; }
+  .topbar-note { display: none; }
+  .mode-badge { font-size: 9px; padding: 6px 8px; }
+  .intro { padding: 28px 0 24px; }
+  h1 { letter-spacing: -1.2px; }
+  .intro .eyebrow { font-size: 8px; letter-spacing: 1.2px; }
+  .intro > p:last-child { font-size: 12px; max-width: 270px; margin: 12px auto 0; }
+  .arena-toolbar { padding: 17px 16px 0; }
+  .arena-note { display: none; }
+  #scene { height: 280px; }
+  .marker-label { font-size: 9px; padding: 5px 7px; }
+  .restaurant-cards { gap: 9px; padding: 16px 12px; }
+  .restaurant-card { padding: 12px; gap: 8px; flex-wrap: wrap; }
+  .restaurant-letter { width: 28px; height: 28px; font-size: 17px; }
+  .restaurant-card > div { width: 100%; }
+  h3 { font-size: 18px; }
+  .restaurant-outcome { margin-left: 0; }
+  .restaurant-outcome:empty { display: none; }
+  .decision { padding: 2px 16px 20px; }
+  .decision h2 { font-size: 21px; }
+  .action-bar { flex-direction: column; align-items: stretch; padding: 18px 16px; }
+  .buttons { width: 100%; }
+  .primary { flex: 1; }
+  .footer { flex-direction: column; gap: 12px; font-size: 10px; }
+  .footer summary { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
