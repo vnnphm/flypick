@@ -1,6 +1,6 @@
 # Ambient idle preview
 
-Open `http://localhost:5173/?ambient=1` to opt in. The normal URL is unchanged;
+Open `http://localhost:5173/?mode=preview&ambient=1` to opt in. The normal URL uses the live controller;
 live/replay states and reduced-motion preference always disable ambient control.
 While mock state is ready, the fly roams between two decorative fruit props, lands,
 and nods briefly. The scene labels this as ambient animation. No pose, fruit, or
@@ -18,9 +18,9 @@ completion to `scene.endAction()`. The backend call order and shared contract ar
 Pending Start, duplicate ready snapshots, and failed actions cannot resume idle.
 A successful Reset to ready, or an unblocked transition back to ready, permits it again.
 
-The live backend handoff is **not verified**; this remains a mock-only preview.
-For later integration, preserve the existing frontend action hooks above and verify
-them against the real controller before changing the mock-only gate. Do not add
+Integration verified live Start/Reset with ambient disabled, including `ambient=1`.
+This remains a mock-only preview; enabling ambient presentation for live mode is not
+part of this integration. Preserve the existing frontend action hooks and mock-only gate. Do not add
 backend events, reset conventions, or ambient poses to the shared contract.
 
 Checks (existing Node runner, no new dependencies):

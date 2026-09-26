@@ -1,0 +1,355 @@
+{
+  "createdAt": "2026-09-26T22:16:10.706Z",
+  "model": {
+    "id": "MaleCNS v1.0 via fly.ai flybrain export --web",
+    "revision": "40fbeca60e5c16742f20b4c2c067de915b388e66"
+  },
+  "settings": {
+    "seeds": 6,
+    "warmSteps": 50,
+    "settleSteps": 25,
+    "measureSteps": 100,
+    "dt": 0.02,
+    "rateTau": 0.18,
+    "input": "LC10a L/R voltage per step (app input cap lifted for the probe)",
+    "decoder": {
+      "turnDeadHz": 0,
+      "turnFullHz": 4,
+      "steeringSign": 1,
+      "dna02GainL": 1.135,
+      "dna02GainR": 0.865
+    }
+  },
+  "groupSizes": {
+    "LC10a L": 135,
+    "LC10a R": 140,
+    "DNa02 L": 1,
+    "DNa02 R": 1,
+    "DNg100 L": 1,
+    "DNg100 R": 1,
+    "MDN L": 2,
+    "MDN R": 2,
+    "DNp01 L": 1,
+    "DNp01 R": 1
+  },
+  "stepMs": 5.76,
+  "rows": [
+    {
+      "condition": "neutral",
+      "drive": 0,
+      "left": 0,
+      "right": 0,
+      "diffHz": [
+        -0.007,
+        0.003,
+        1.276,
+        0,
+        0.851,
+        0.5
+      ],
+      "meanDiffHz": 0.437,
+      "sdHz": 0.54,
+      "turn": [
+        0.024,
+        -0.001,
+        -0.275,
+        0,
+        -0.184,
+        -0.108
+      ],
+      "meanTurn": -0.091,
+      "dna02L": 0.52,
+      "dna02R": 0.083,
+      "dng100": 0.143,
+      "mdn": 0.202
+    },
+    {
+      "condition": "left",
+      "drive": 0.3,
+      "left": 0.3,
+      "right": 0,
+      "diffHz": [
+        0.954,
+        2.027,
+        3.547,
+        2.027,
+        1.904,
+        1.271
+      ],
+      "meanDiffHz": 1.955,
+      "sdHz": 0.896,
+      "turn": [
+        -0.171,
+        -0.427,
+        -0.697,
+        -0.429,
+        -0.405,
+        -0.276
+      ],
+      "meanTurn": -0.401,
+      "dna02L": 2.038,
+      "dna02R": 0.083,
+      "dng100": 0.127,
+      "mdn": 0.218
+    },
+    {
+      "condition": "right",
+      "drive": 0.3,
+      "left": 0,
+      "right": 0.3,
+      "diffHz": [
+        -1.405,
+        -1.442,
+        -0.904,
+        -1.77,
+        -0.788,
+        -2.052
+      ],
+      "meanDiffHz": -1.393,
+      "sdHz": 0.487,
+      "turn": [
+        0.357,
+        0.379,
+        0.25,
+        0.467,
+        0.21,
+        0.517
+      ],
+      "meanTurn": 0.363,
+      "dna02L": 0.164,
+      "dna02R": 1.558,
+      "dng100": 0.143,
+      "mdn": 0.267
+    },
+    {
+      "condition": "both",
+      "drive": 0.3,
+      "left": 0.3,
+      "right": 0.3,
+      "diffHz": [
+        -0.144,
+        0.034,
+        0.833,
+        -0.594,
+        0.999,
+        -0.618
+      ],
+      "meanDiffHz": 0.085,
+      "sdHz": 0.694,
+      "turn": [
+        0.089,
+        0.052,
+        -0.088,
+        0.219,
+        -0.157,
+        0.215
+      ],
+      "meanTurn": 0.055,
+      "dna02L": 1.381,
+      "dna02R": 1.296,
+      "dng100": 0.25,
+      "mdn": 0.2
+    },
+    {
+      "condition": "left",
+      "drive": 0.6,
+      "left": 0.6,
+      "right": 0,
+      "diffHz": [
+        2.856,
+        3.635,
+        4.894,
+        3.086,
+        3.549,
+        3.431
+      ],
+      "meanDiffHz": 3.575,
+      "sdHz": 0.71,
+      "turn": [
+        -0.546,
+        -0.72,
+        -0.873,
+        -0.63,
+        -0.708,
+        -0.681
+      ],
+      "meanTurn": -0.693,
+      "dna02L": 3.658,
+      "dna02R": 0.083,
+      "dng100": 0.153,
+      "mdn": 0.218
+    },
+    {
+      "condition": "right",
+      "drive": 0.6,
+      "left": 0,
+      "right": 0.6,
+      "diffHz": [
+        -2.558,
+        -2.54,
+        -2.205,
+        -2.732,
+        -3.04,
+        -3.283
+      ],
+      "meanDiffHz": -2.727,
+      "sdHz": 0.385,
+      "turn": [
+        0.618,
+        0.62,
+        0.569,
+        0.669,
+        0.73,
+        0.765
+      ],
+      "meanTurn": 0.662,
+      "dna02L": 0.093,
+      "dna02R": 2.82,
+      "dng100": 0.278,
+      "mdn": 0.295
+    },
+    {
+      "condition": "both",
+      "drive": 0.6,
+      "left": 0.6,
+      "right": 0.6,
+      "diffHz": [
+        -0.306,
+        0.664,
+        0.957,
+        -0.383,
+        -0.134,
+        -0.628
+      ],
+      "meanDiffHz": 0.028,
+      "sdHz": 0.633,
+      "turn": [
+        0.161,
+        0.009,
+        -0.035,
+        0.236,
+        0.157,
+        0.273
+      ],
+      "meanTurn": 0.134,
+      "dna02L": 2.476,
+      "dna02R": 2.448,
+      "dng100": 0.354,
+      "mdn": 0.164
+    },
+    {
+      "condition": "left",
+      "drive": 0.8,
+      "left": 0.8,
+      "right": 0,
+      "diffHz": [
+        3.982,
+        4.037,
+        4.662,
+        4.03,
+        4.607,
+        3.941
+      ],
+      "meanDiffHz": 4.21,
+      "sdHz": 0.331,
+      "turn": [
+        -0.726,
+        -0.781,
+        -0.855,
+        -0.781,
+        -0.843,
+        -0.762
+      ],
+      "meanTurn": -0.791,
+      "dna02L": 4.293,
+      "dna02R": 0.083,
+      "dng100": 0.261,
+      "mdn": 0.193
+    },
+    {
+      "condition": "right",
+      "drive": 0.8,
+      "left": 0,
+      "right": 0.8,
+      "diffHz": [
+        -3.197,
+        -3.083,
+        -2.658,
+        -3.619,
+        -2.941,
+        -2.304
+      ],
+      "meanDiffHz": -2.967,
+      "sdHz": 0.453,
+      "turn": [
+        0.749,
+        0.737,
+        0.637,
+        0.825,
+        0.704,
+        0.581
+      ],
+      "meanTurn": 0.706,
+      "dna02L": 0.248,
+      "dna02R": 3.215,
+      "dng100": 0.311,
+      "mdn": 0.315
+    },
+    {
+      "condition": "both",
+      "drive": 0.8,
+      "left": 0.8,
+      "right": 0.8,
+      "diffHz": [
+        0.828,
+        0.883,
+        1.186,
+        0.592,
+        1.351,
+        -0.336
+      ],
+      "meanDiffHz": 0.751,
+      "sdHz": 0.596,
+      "turn": [
+        -0.023,
+        -0.046,
+        -0.069,
+        0.025,
+        -0.149,
+        0.27
+      ],
+      "meanTurn": 0.001,
+      "dna02L": 3.41,
+      "dna02R": 2.66,
+      "dng100": 0.268,
+      "mdn": 0.244
+    }
+  ],
+  "verdict": [
+    {
+      "drive": 0.3,
+      "leftMinusRightHz": 3.348,
+      "opposite": true,
+      "leftTurnsLeft": true,
+      "rightTurnsRight": true
+    },
+    {
+      "drive": 0.6,
+      "leftMinusRightHz": 6.302,
+      "opposite": true,
+      "leftTurnsLeft": true,
+      "rightTurnsRight": true
+    },
+    {
+      "drive": 0.8,
+      "leftMinusRightHz": 7.177,
+      "opposite": true,
+      "leftTurnsLeft": true,
+      "rightTurnsRight": true
+    }
+  ],
+  "suggestedGains": {
+    "dna02GainL": 1.135,
+    "dna02GainR": 0.865
+  }
+}

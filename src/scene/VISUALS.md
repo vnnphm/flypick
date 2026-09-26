@@ -24,4 +24,5 @@ through orbit/zoom. Their distribution is deterministic visual data, not a backe
 Verified: production build/typecheck, four existing controller tests and four ambient
 isolation tests. Browser screenshots captured the first undecorated pass and final
 habitat; orbit, zoom, and Reset view were exercised. The Three.js bundle-size advisory
-remains. No live neural/backend validation is claimed by this visual revision.
+remains. Subsequent controller integration and live-run results are documented in
+the root README; this visual revision itself did not validate the backend.
