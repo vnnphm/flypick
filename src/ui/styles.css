@@ -33,9 +33,14 @@ h1 em { color: #6c8066; font-weight: 400; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #788b66; }
 .arena-note { font-size: 9px; letter-spacing: 1.5px; }
 .stage { position: relative; }
-#scene { position: relative; width: 100%; height: clamp(340px, 43vh, 420px); }
+#scene { position: relative; width: 100%; height: clamp(400px, 53vh, 540px); }
 canvas { display: block; }
+.camera-tools { position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 12px; color: #334535; font-size: 11px; }
+.camera-tools button { min-height: 38px; padding: 8px 12px; border: 1px solid #b4c0a8; border-radius: 7px; background: #f9f7edef; color: #334535; }
+.camera-tools > span { background: #f9f7edcf; padding: 5px 8px; border-radius: 5px; }
+.scene-fly-label { position: absolute; transform: translate(-50%, -100%); pointer-events: none; padding: 2px 5px; border-radius: 4px; color: #ecf6da; background: #35462bdb; font-size: 9px; }
 .marker-labels { position: absolute; inset: 0; pointer-events: none; }
+.ambient-label { position: absolute; left: 16px; bottom: 24px; padding: 5px 8px; border-radius: 6px; color: #5d6c56; background: #f9f7edef; font-size: 10px; pointer-events: none; }
 .marker-label { position: absolute; transform: translate(-50%, -100%); max-width: 38%; padding: 6px 10px; border-radius: 7px; font-size: 11px; font-weight: 600; color: #344636; background: #f9f7edee; border: 1px solid #d6d9c8; text-align: center; overflow-wrap: anywhere; box-shadow: 0 3px 8px #38462b08; }
 .marker-label.is-selected { background: #2f4939; color: #fff9ec; border-color: #2f4939; }
 .stage-footnote { position: absolute; bottom: 2px; width: 100%; text-align: center; font-family: Georgia, serif; font-style: italic; font-size: 12px; color: #727562; pointer-events: none; }
@@ -87,7 +92,9 @@ h3 { font-family: Georgia, serif; font-size: 20px; font-weight: 400; margin: 4px
   .intro > p:last-child { font-size: 12px; max-width: 270px; margin: 12px auto 0; }
   .arena-toolbar { padding: 17px 16px 0; }
   .arena-note { display: none; }
-  #scene { height: 280px; }
+  .camera-tools { right: 10px; font-size: 9px; gap: 6px; }
+  .camera-tools > span { max-width: 115px; }
+  #scene { height: clamp(280px, 70vw, 420px); }
   .marker-label { font-size: 9px; padding: 5px 7px; }
   .restaurant-cards { gap: 9px; padding: 16px 12px; }
   .restaurant-card { padding: 12px; gap: 8px; flex-wrap: wrap; }

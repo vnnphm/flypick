@@ -3,7 +3,7 @@ import { createScene } from '../scene/createScene';
 
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
-/** The only app integration point: pass the real controller here when available. */
+/** Render the supplied controller's state without owning movement or decisions. */
 export function mountFlyPick(root: HTMLElement, controller: SimulationController) {
   root.innerHTML = `
     <div class="app-shell">
@@ -12,13 +12,13 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
         <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
         <section class="experience" aria-label="Restaurant choice arena">
           <div class="arena-toolbar"><span><span class="status-dot"></span><span id="arena-status">Preparing the stage</span></span><span class="arena-note">ONE FLY · TWO POSSIBILITIES</span></div>
-          <div class="stage"><div id="scene" role="img" aria-label="A fly in a sunny miniature courtyard with two restaurant storefronts, striped awnings, and potted trees."></div><div class="stage-footnote">A little courtyard. Two good possibilities.</div></div>
+          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div><div class="stage-footnote">A tiny habitat. Two good possibilities.</div></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
           <p class="action-error" id="action-error" role="alert" hidden></p>
         </section>
-        <footer class="footer"><p id="disclosure"></p><details><summary>How the fly picks</summary><p>The planned live experience maps menu features to sensory signals for a simulated fly brain. The simulation supplies the fly’s position and the final result. Wings and lighting are decorative.</p><p>These designed signals do not measure food quality or biological food preference. Your shortlist stays your choice.</p></details></footer>
+        <footer class="footer"><p id="disclosure"></p><details><summary>How the fly picks</summary><p>The live experience maps menu features to sensory signals for a simulated fly brain. The simulation supplies the fly’s position and the final result. Wings and lighting are decorative.</p><p>These designed signals do not measure food quality or biological food preference. Your shortlist stays your choice.</p></details></footer>
         <div id="preview-tools"></div>
       </main>
     </div>`;
@@ -64,8 +64,8 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     scene?.update(next);
     root.dataset.status = next.status;
     root.dataset.mode = next.mode;
-    get('mode').textContent = next.mode === 'mock' ? 'Visual preview · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'Live simulation';
-    get('disclosure').textContent = next.mode === 'mock' ? 'Visual preview. Example restaurants. No brain or menu service connected.' : next.mode === 'replay' ? 'Recorded run. Original inputs and outcome; no new decision is being made.' : 'Simulated fly brain. Simplified movement. Your restaurant shortlist.';
+    get('mode').textContent = next.mode === 'mock' ? 'Mock mode · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'Live simulation';
+    get('disclosure').textContent = next.mode === 'mock' ? 'Mock mode. Movement and results are synthetic; no live brain is running.' : next.mode === 'replay' ? 'Recorded run. Original inputs and outcome; no new decision is being made.' : 'Simulated fly brain. Simplified movement. Your restaurant shortlist.';
     const key = JSON.stringify(next.restaurants.map(r => [r.id, r.name]));
     if (key !== cardsKey) {
       cardsKey = key;
@@ -100,8 +100,8 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     const selected = next.restaurants.find(r => r.id === next.selectedRestaurantId);
     const titles: Record<SimulationState['status'], string> = {
       loading: 'Getting things ready…', ready: 'Good with both? Let’s begin.',
-      running: next.mode === 'mock' ? 'Preview running. Waiting for a sample pose.' : 'A little patience. A little fly.',
-      selected: selected ? `${next.mode === 'mock' ? 'Preview pick' : 'The fly picked'}: ${selected.name}.` : 'The result is unavailable.',
+      running: next.mode === 'mock' ? 'Mock run in progress.' : 'A little patience. A little fly.',
+      selected: selected ? `${next.mode === 'mock' ? 'Mock pick' : 'The fly picked'}: ${selected.name}.` : 'The result is unavailable.',
       'no-choice': 'The fly couldn’t decide. Try again?', error: 'Something interrupted the run.',
     };
     const messages: Record<SimulationState['status'], string> = {
@@ -114,7 +114,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     if (nextDecisionKey !== decisionKey) {
       decisionKey = nextDecisionKey;
       get('arena-status').textContent = { loading: 'Preparing', ready: 'Ready when you are', running: 'In motion', selected: 'Decision received', 'no-choice': 'No choice this time', error: 'Run interrupted' }[next.status];
-      get('status-label').textContent = next.mode === 'mock' ? `Visual preview / ${next.status}` : next.mode === 'replay' ? `Recorded run / ${next.status}` : next.status.replace('-', ' ');
+      get('status-label').textContent = next.mode === 'mock' ? `Mock mode / ${next.status}` : next.mode === 'replay' ? `Recorded run / ${next.status}` : next.status.replace('-', ' ');
       get('status-title').textContent = titles[next.status];
       get('status-message').textContent = next.message || messages[next.status];
     }
@@ -122,16 +122,19 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   }
   async function act(action: 'start' | 'reset') {
     if (pending || disposed) return;
+    scene?.beginAction();
+    let succeeded = false;
     pending = true;
     actionError.hidden = true;
     refreshControls();
-    try { await controller[action](); }
+    try { await controller[action](); succeeded = true; }
     catch {
       if (!disposed) {
         actionError.textContent = `Couldn’t ${action} the run. Please try again.`;
         actionError.hidden = false;
       }
     } finally {
+      if (!disposed) scene?.endAction(action, succeeded);
       pending = false;
       if (!disposed) refreshControls();
     }

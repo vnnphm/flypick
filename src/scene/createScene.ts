@@ -1,14 +1,20 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { SimulationState } from '../contracts';
 import { createFly } from './fly';
 import { createCourtyard } from './courtyard';
+import { createIdleAnimation } from './idle';
+import { createIdleFruit } from './idleFruit';
 
 const COLORS = ['#8da78e', '#c68b63'];
 const TRAIL_LIMIT = 180;
 
 export function createScene(container: HTMLElement) {
   const scene = new THREE.Scene();
-  const camera = new THREE.OrthographicCamera(-7, 7, 6, -6, 0.1, 100);
+  // Perspective/orbit setup adapted from the pinned fly.ai renderer; see fly-ai-NOTICE.md.
+  const camera = new THREE.PerspectiveCamera(52, 1, 0.05, 400);
+  scene.background = new THREE.Color('#c5cfbd');
+  scene.fog = new THREE.Fog('#c5cfbd', 35, 100);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -18,8 +24,27 @@ export function createScene(container: HTMLElement) {
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.setAttribute('aria-hidden', 'true');
   container.append(renderer.domElement);
-  scene.add(new THREE.HemisphereLight('#fff6df', '#b1b5a0', 2.7));
-  const sun = new THREE.DirectionalLight('#fff6e6', 3);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.enablePan = false;
+  controls.minPolarAngle = Math.PI * 0.1;
+  controls.maxPolarAngle = Math.PI * 0.46;
+  controls.minAzimuthAngle = -Math.PI * 0.85;
+  controls.maxAzimuthAngle = Math.PI * 0.85;
+  controls.minDistance = 5;
+  controls.maxDistance = 28;
+  const cameraTools = document.createElement('div');
+  cameraTools.className = 'camera-tools';
+  const hint = document.createElement('span');
+  hint.textContent = 'Drag to orbit · scroll to zoom';
+  const resetView = document.createElement('button');
+  resetView.type = 'button';
+  resetView.textContent = 'Reset view';
+  cameraTools.append(hint, resetView);
+  // Controls must be outside the scene's role=img so keyboard/AT users can reach them.
+  (container.parentElement ?? container).append(cameraTools);
+  scene.add(new THREE.HemisphereLight('#fff6df', '#8b9e7b', 1.8));
+  const sun = new THREE.DirectionalLight('#fff6e6', 1.9);
   sun.position.set(-6, 12, -5);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
@@ -33,12 +58,21 @@ export function createScene(container: HTMLElement) {
   scene.add(environment);
   const fly = createFly();
   scene.add(fly.root);
+  // Reference locator ring keeps the smaller fly visible without enlarging its body.
+  const locator = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.022, 3, 24), new THREE.MeshBasicMaterial({ color: '#e8f7cb', transparent: true, opacity: 0.9, depthTest: false }));
+  locator.rotation.x = Math.PI / 2;
+  locator.renderOrder = 2;
+  scene.add(locator);
   const markerGroup = new THREE.Group();
   scene.add(markerGroup);
   const labels = document.createElement('div');
   labels.className = 'marker-labels';
   labels.setAttribute('aria-hidden', 'true');
   container.append(labels);
+  const flyLabel = document.createElement('span');
+  flyLabel.className = 'scene-fly-label';
+  flyLabel.textContent = 'Fly';
+  container.append(flyLabel);
   let markers: { id: string; mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>; label: HTMLElement; position: THREE.Vector3 }[] = [];
   let geometryKey = '';
   let runId = '';
@@ -51,6 +85,18 @@ export function createScene(container: HTMLElement) {
   let centerZ = 0;
   let disposed = false;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  // Explicit frontend preview only; disabled for normal URLs and all live/replay states.
+  const idleEnabled = new URLSearchParams(location.search).get('ambient') === '1';
+  const idle = createIdleAnimation(idleEnabled);
+  const fruit = idleEnabled ? createIdleFruit() : undefined;
+  const ambientLabel = idleEnabled ? document.createElement('span') : undefined;
+  if (fruit && ambientLabel) {
+    scene.add(fruit);
+    ambientLabel.className = 'ambient-label';
+    ambientLabel.textContent = 'Ambient animation · decorative only';
+    ambientLabel.hidden = true;
+    container.append(ambientLabel);
+  }
   const trailPoints: { x: number; z: number; time: number }[] = [];
   const trailGeometry = new THREE.BufferGeometry();
   const trailPositions = new Float32Array(TRAIL_LIMIT * 3);
@@ -63,20 +109,26 @@ export function createScene(container: HTMLElement) {
   scene.add(trail);
 
   function fitCamera() {
+    controls.enableDamping = false;
+    controls.update();
     const aspect = width / height;
-    const halfHeight = Math.max(radius * 0.83, radius * 1.15 / aspect);
-    camera.left = -halfHeight * aspect;
-    camera.right = halfHeight * aspect;
-    camera.top = halfHeight;
-    camera.bottom = -halfHeight;
-    camera.position.set(centerX, 12, centerZ + 13);
-    camera.lookAt(centerX, 0.4, centerZ);
+    camera.aspect = aspect;
+    const distance = Math.max(radius * 2.3, radius * 1.6 / aspect);
+    controls.maxDistance = Math.max(28, distance * 1.4);
+    controls.target.set(centerX, 0.4, centerZ);
+    camera.position.copy(controls.target).add(new THREE.Vector3(0.18, 0.68, 1).normalize().multiplyScalar(distance));
+    camera.lookAt(controls.target);
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
+    controls.update();
+    controls.enableDamping = !reducedMotion.matches;
+    controls.saveState();
   }
+  resetView.addEventListener('click', fitCamera);
   function updateLabels() {
     for (const marker of markers) {
       const projected = marker.position.clone().project(camera);
+      marker.label.hidden = projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1;
       marker.label.style.left = `${(projected.x + 1) * width / 2}px`;
       marker.label.style.top = `${(1 - projected.y) * height / 2}px`;
     }
@@ -101,6 +153,7 @@ export function createScene(container: HTMLElement) {
   }
 
   function update(next: SimulationState) {
+    idle.update(next);
     const freshRun = runId !== next.runId;
     if (freshRun) {
       trailPoints.length = 0;
@@ -147,8 +200,6 @@ export function createScene(container: HTMLElement) {
       trailPoints.push({ x: next.fly.x, z: next.fly.z, time: performance.now() });
       if (trailPoints.length > TRAIL_LIMIT) trailPoints.shift();
     }
-    fly.root.position.set(next.fly.x, 0, next.fly.z);
-    fly.root.rotation.y = next.fly.heading;
     for (const marker of markers) {
       const selected = next.status === 'selected' && next.selectedRestaurantId === marker.id;
       marker.mesh.material.emissive.set(selected ? '#607d4d' : '#000000');
@@ -162,9 +213,26 @@ export function createScene(container: HTMLElement) {
   const faded = new THREE.Color('#d8d0ba');
   const ink = new THREE.Color('#677d66');
   const color = new THREE.Color();
+  // One transform writer selects local ambient presentation OR the supplied pose.
+  function renderFly(now: number) {
+    const pose = idle.sample(now, reducedMotion.matches);
+    fly.root.position.set(pose.x, pose.y, pose.z);
+    locator.position.set(pose.x, 0.055, pose.z);
+    fly.root.rotation.set(pose.pitch, pose.heading, 0, 'YXZ');
+    fly.animate(now / 1000, (pose.ambient ? pose.flying : running) && !reducedMotion.matches);
+    if (fruit) { fruit.visible = pose.ambient; fruit.position.set(pose.anchor.x, 0, pose.anchor.z); }
+    if (ambientLabel) ambientLabel.hidden = !pose.ambient;
+  }
   function frame(now: number) {
     if (disposed) return;
-    fly.animate(now / 1000, running && !reducedMotion.matches);
+    renderFly(now);
+    controls.enableDamping = !reducedMotion.matches;
+    controls.update();
+    updateLabels();
+    const flyScreen = fly.root.position.clone().add(new THREE.Vector3(0, 0.7, 0)).project(camera);
+    flyLabel.hidden = flyScreen.z < -1 || flyScreen.z > 1 || Math.abs(flyScreen.x) > 1 || Math.abs(flyScreen.y) > 1;
+    flyLabel.style.left = `${(flyScreen.x + 1) * width / 2}px`;
+    flyLabel.style.top = `${(1 - flyScreen.y) * height / 2}px`;
     if (running) {
       while (trailPoints.length && now - trailPoints[0].time > 6000) trailPoints.shift();
     }
@@ -183,15 +251,27 @@ export function createScene(container: HTMLElement) {
   renderer.setAnimationLoop(frame);
   return {
     update,
+    beginAction() {
+      idle.beginAction();
+      renderFly(performance.now()); // Restore authoritative pose before the backend call.
+      renderer.render(scene, camera);
+    },
+    endAction(action: 'start' | 'reset', succeeded: boolean) { idle.endAction(action, succeeded); },
     dispose() {
       disposed = true;
+      idle.dispose();
       observer.disconnect();
+      controls.dispose();
+      resetView.removeEventListener('click', fitCamera);
+      cameraTools.remove();
       renderer.setAnimationLoop(null);
       disposeObject(scene);
       sun.shadow.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       labels.remove();
+      flyLabel.remove();
+      ambientLabel?.remove();
     },
   };
 }
