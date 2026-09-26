@@ -16,5 +16,10 @@ Use the Node 24 container workflow for tooling:
 - `docker compose run --rm web npm run typecheck` checks types separately.
 - `docker compose run --rm web npm test` runs the focused Node tests.
 
+Brain/data side: the fly must be steered only by decoded connectome output; never add a
+target-seeking controller, per-restaurant tuning, or a fallback that picks a winner. Tune gains
+only with restaurant-free tools (`npm run probe`, `npm run arena`) and rerun `npm run check`.
+Model files come from `npm run fetch:connectome` (pinned fly.ai revision, gitignored).
+
 Dependencies live in the Compose `dependencies` volume. No host package installation
 is needed. There is no separate linter; tests use Node's built-in runner.

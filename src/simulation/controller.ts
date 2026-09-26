@@ -82,7 +82,8 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
 
   function progress(text: string) {
     publishDetails({ runtime: { ...details.runtime, progress: text } });
-    publish({ status: "loading", message: text });
+    // background model progress never overrides an error or a ready run
+    if (state.status === "loading") publish({ message: text });
   }
 
   function getWorker(): Worker {
@@ -134,7 +135,7 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
         if (r.status === "selected") {
           const name = targets.find((t) => t.id === r.selectedRestaurantId)?.name ?? r.selectedRestaurantId;
           publish({ status: "selected", selectedRestaurantId: r.selectedRestaurantId,
-            message: `The fly stayed in ${name}’s zone for ${config.dwellS} simulated second after ${(r.simTimeS - config.dwellS).toFixed(1)} s.` });
+            message: `The fly entered ${name}’s zone at ${(r.simTimeS - config.dwellS).toFixed(1)} s and stayed for ${config.dwellS} simulated second.` });
         } else if (r.status === "no-choice") {
           publish({ status: "no-choice", selectedRestaurantId: null,
             message: r.reason === "timeout"
@@ -184,6 +185,7 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
   async function init(): Promise<void> {
     initError = null;
     try {
+      publish({ status: "loading", selectedRestaurantId: null, message: "Getting ready." });
       if (mode === "replay") {
         progress("Loading the recorded run.");
         const entries = Object.entries(REPLAYS).sort(([a], [b]) => b.localeCompare(a));
@@ -197,10 +199,12 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
         }).filter((m): m is RestaurantSnapshot => m !== null);
       } else {
         progress(options.menuSource === "cached" ? "Opening the saved Firecrawl menus." : "Reading both menus with Firecrawl.");
+        // the 58 MB brain download overlaps the Firecrawl requests
+        const brain = loadBrain();
+        brain.catch(() => {});
         menus = await loadMenus(options.menuSource);
         publishDetails({ menus });
-        progress("Preparing the fly brain.");
-        await loadBrain();
+        await brain;
       }
       publishDetails({ menus });
       prepare();
