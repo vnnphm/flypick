@@ -14,6 +14,8 @@ import { Engine } from "../../src/simulation/engine.ts";
 import { placeTargets, sense, type Target } from "../../src/simulation/geometry.ts";
 import { isCurrent } from "../../src/simulation/protocol.ts";
 import { buildLog, replayEngine, runToEnd, type RunLog } from "../../src/simulation/recorder.ts";
+import { placeSnapshot, type MenuCapture } from "../../src/data/snapshot.ts";
+import { scoreLink } from "../menuFinder.ts";
 import { connectomeAdapter } from "../model.ts";
 
 let passed = 0, failed = 0;
@@ -132,6 +134,31 @@ await check("encoder ignores restaurant name and price", () => {
   const b = encodeMenu({ name: "Zeta", menu: [{ ...item, priceText: "$500" }] });
   assert.deepEqual(a, b);
   assert.ok(a.cues.fruit === 1 && a.cues.sweet === 1 && a.cues.fermented === 0);
+});
+
+await check("menu finder prefers the site's main menu over partial, off-site or off-topic pages", () => {
+  const site = new URL("https://example-cafe.com/");
+  const score = (url: string, title: string | null = null) => scoreLink({ url, title, description: null }, site, "Example Cafe");
+  assert.ok(score("https://example-cafe.com/wp-content/uploads/Sample-Dinner-menu.pdf") > score("https://example-cafe.com/wp-content/uploads/Sample-Dessert-menu.pdf"));
+  assert.ok(score("https://example-cafe.com/menu") > score("https://other-site.com/menu"));
+  assert.ok(score("https://example-cafe.com/careers/menu-developer") < 5, "careers page counted as a menu");
+  assert.ok(score("https://example-cafe.com/about") < 5, "page without 'menu' counted as a menu");
+  const found = (url: string) => scoreLink({ url, title: null, description: null }, null, "Example Cafe");
+  assert.ok(found("https://examplecafe.com/menu") > found("https://www.yelp.com/menu/example-cafe"), "web search should prefer the restaurant's own domain");
+});
+
+await check("a searched place's menu keeps its place identity; an empty menu is an error", () => {
+  const capture: MenuCapture = {
+    id: "N1", sourceUrl: "https://example-cafe.com/menu", fetchedAt: "2026-09-26T00:00:00Z", provider: "firecrawl",
+    firecrawl: { endpoint: "x", title: null, statusCode: 200 },
+    extraction: { name: "Example", menu: [{ name: "Lemon tart", description: null, priceText: null, ingredients: [], evidenceText: "" }] },
+    place: { id: "N1", name: "Example Cafe", address: "1 Main St" },
+  };
+  const snap = placeSnapshot(capture, "live");
+  assert.equal(snap.displayName, "Example Cafe");
+  assert.equal(snap.address, "1 Main St");
+  assert.throws(() => placeSnapshot({ ...capture, place: undefined }, "live"));
+  assert.throws(() => placeSnapshot({ ...capture, extraction: { name: null, menu: [] } }, "live"));
 });
 
 // ---- real connectome -------------------------------------------------------------------------

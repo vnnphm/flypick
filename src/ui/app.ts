@@ -4,7 +4,7 @@ import { createScene } from '../scene/createScene';
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
 /** Render the supplied controller's state without owning movement or decisions. */
-export function mountFlyPick(root: HTMLElement, controller: SimulationController) {
+export function mountFlyPick(root: HTMLElement, controller: SimulationController, options: { search?: boolean } = {}) {
   root.innerHTML = `
     <div class="app-shell">
       <header class="topbar"><a class="brand" href="./" aria-label="FlyPick home">${flyIcon}<span>flypick<span class="brand-dot">.</span></span></a><span class="topbar-note">A little help with a big little decision.</span><span class="mode-badge" id="mode"></span></header>
@@ -12,7 +12,8 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
         <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
         <section class="experience" aria-label="Restaurant choice arena">
           <div class="arena-toolbar"><span><span class="status-dot"></span><span id="arena-status">Preparing the stage</span></span><span class="arena-note">ONE FLY · TWO POSSIBILITIES</span></div>
-          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div><div class="stage-footnote">A tiny habitat. Two good possibilities.</div></div>
+          <div id="picker-host"></div>
+          <div class="stage" id="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div><div class="stage-footnote">A tiny habitat. Two good possibilities.</div></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
@@ -62,6 +63,11 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     }
     state = next;
     scene?.update(next);
+    if (options.search) {
+      // search mode: the map appears once both places are ready; cards replace the picker during a run
+      get('stage').hidden = next.restaurants.length !== 2;
+      get('restaurants').hidden = !['running', 'selected', 'no-choice'].includes(next.status);
+    }
     root.dataset.status = next.status;
     root.dataset.mode = next.mode;
     get('mode').textContent = next.mode === 'mock' ? 'Mock mode · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'Live simulation';
@@ -147,6 +153,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   const unsubscribe = controller.subscribe(update);
   return {
     previewHost: get('preview-tools'),
+    pickerHost: get('picker-host'),
     dispose() {
       disposed = true;
       unsubscribe();

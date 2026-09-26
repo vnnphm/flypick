@@ -74,13 +74,37 @@ Three.js currently produces Vite's advisory warning for a bundle larger than 500
 
 | URL | Brain | Menus |
 |---|---|---|
-| `/` | live full connectome | read live with Firecrawl |
-| `/?menus=cached` | live full connectome | the saved Firecrawl captures, labeled with their date |
+| `/` | live full connectome | **search:** pick a city and two restaurants; each menu is found and read with Firecrawl |
+| `/?menus=shortlist` | live full connectome | the fixed shortlist (`src/data/restaurants.ts`), read live with Firecrawl |
+| `/?menus=cached` | live full connectome | the shortlist's saved Firecrawl captures, labeled with their date |
 | `/?mode=replay` | recorded motor output of a genuine live run | the menus saved in that run |
 | `/?mode=mock` | **synthetic steering, not a brain** (UI work) | saved captures if any |
 | `/?mode=preview` | none; authored visual fixtures | example names |
 
 Nothing falls back silently: if Firecrawl or the model fails, the page shows an error and no choice.
+
+## Picking restaurants (search mode)
+
+1. **City.** Type a city (Nominatim finds it; pick one if several match) or press *Use my location*
+   (the browser asks; the server rounds the position to ~1 km, names the city, and keeps nothing).
+2. **Two restaurants.** Each slot searches restaurants, cafés, bars and similar near that city as you
+   type (Photon, OpenStreetMap data) and lists name + address. The same place can't fill both slots.
+3. **Menu.** Picking a result sends only its OpenStreetMap id to the server (`POST /api/menus/read`),
+   which looks the place up and chooses the page to read, in this order: the map's own menu link
+   (`website:menu`); the best “menu” page on the restaurant's website (Firecrawl `/map`, ranked to prefer
+   the main food menu over dessert/drinks/event menus and off-topic pages); the website itself; or, with
+   no website, the best result of a Firecrawl web search (preferring the restaurant's own domain).
+   At most two pages are extracted per place. The card shows **Reading menu…** then **Ready · N menu
+   items** with a link to the page used, or why the menu couldn't be read plus *Choose another place*.
+   No menu is ever invented. Successful reads are kept in `.cache/menus/` (gitignored) and reused for
+   6 hours, labeled “saved”.
+4. **Map and run.** The arena appears once both menus are read and the brain is loaded; the rest of the
+   flow (approve, *Ask the Fly*, result, Reset) is unchanged. Change a place any time you're not mid-run.
+
+Code: `server/places.ts` (search), `server/menuFinder.ts` (menu discovery), `server/firecrawl.ts`,
+`src/data/places.ts` (browser client), `src/ui/search.ts` (panel), `controller.choosePlace(slot, place)`
+and `SimulationDetails.slots` (`src/contracts.ts`). Places need no key; Firecrawl uses `FIRECRAWL_API_KEY`.
+Reading one menu takes about 15–35 s in testing (one `/map` or `/search` call plus one or two extractions).
 
 ## How the fly picks (brain, menus, simulation)
 
@@ -212,6 +236,17 @@ at 7.2 simulated seconds and dwelling for one second. Live reset worked after se
 and during a run. Ambient motion stayed disabled in live mode, even with `ambient=1`.
 Cached menus reached ready after a server restart, and missing replay data produced
 an explicit error with Start disabled.
+
+**Search flow (2026-09-26, Chrome, dev server):**
+- San Francisco listed five matching cities; "San Francisco, California" picked one directly.
+- Zuni Café (15 items, first read) and Souvla (20 items, saved capture) both reached Ready, and the map appeared.
+- A live connectome run picked Souvla (zone entry at 9.9 s plus the 1 s dwell). Reset returned to the picker.
+- Change cleared a slot and hid the map. A place already in the other slot showed as "already chosen".
+- Zuni's first read used a dessert-only PDF, so the ranker now prefers main menus. The re-read used the dinner menu (19 items).
+- In Node, Sweetgreen (no website in OpenStreetMap) was found through Firecrawl web search: 20 items from sweetgreen.com/menu.
+- Bad place ids and URLs are rejected by the server.
+- `npm run check` passes 16 checks.
+- Not tested: "Use my location" (the browser pane can't grant geolocation) and a place whose menu can't be found, including how the UI shows that error.
 
 **Current shortlist:** sweetgreen and Souvla. Souvla replaces Tartine, whose capture
 contained cake-order categories and a gift card entry. Souvla's official menu produced

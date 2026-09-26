@@ -45,3 +45,12 @@ neurons, 25.1 M synapses after dropping synapses onto sensory neurons; weights s
 log scale, mean error 2.3%). The connectome itself comes from the MaleCNS release by Janelia
 Research Campus / FlyEM and collaborators (https://male-cns.janelia.org); check that release's
 terms before redistributing the files.
+
+## OpenStreetMap data, Nominatim and Photon
+
+Restaurant and city search use OpenStreetMap data (© OpenStreetMap contributors, ODbL 1.0,
+https://www.openstreetmap.org/copyright) via the public Nominatim service
+(https://nominatim.org, usage policy: at most 1 request/s, identified client; `server/places.ts`
+queues requests accordingly) and Photon by komoot (https://photon.komoot.io). The search panel shows
+the OpenStreetMap attribution. For heavier use, run your own instances or switch to a commercial
+places API.
