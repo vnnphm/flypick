@@ -1,5 +1,6 @@
 import type { SimulationController, SimulationState } from '../contracts';
 import { createScene } from '../scene/createScene';
+import { mountBrainPanel } from './brainPanel';
 
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
@@ -11,7 +12,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       <main>
         <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
         <section class="experience" aria-label="Restaurant choice arena">
-          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div>
+          <div class="world-and-brain"><div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div><aside class="brain-host" id="brain-panel" aria-label="Fly Brain telemetry"></aside></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
@@ -27,9 +28,10 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   const approve = get<HTMLInputElement>('approve');
   const actionError = get('action-error');
   const sceneContainer = get('scene');
+  const brainPanel = mountBrainPanel(get('brain-panel'), controller);
   let scene: ReturnType<typeof createScene> | undefined;
   let sceneFailed = false;
-  try { scene = createScene(sceneContainer); }
+  try { scene = createScene(sceneContainer, brainPanel.setAmbient); }
   catch (error) {
     sceneFailed = true;
     sceneContainer.replaceChildren();
@@ -61,6 +63,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     }
     state = next;
     scene?.update(next);
+    brainPanel.update(next);
     root.dataset.status = next.status;
     root.dataset.mode = next.mode;
     get('mode').textContent = next.mode === 'mock' ? 'Mock mode · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'Live simulation';
@@ -148,6 +151,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     dispose() {
       disposed = true;
       unsubscribe();
+      brainPanel.dispose();
       start.removeEventListener('click', onStart);
       reset.removeEventListener('click', onReset);
       approve.removeEventListener('change', refreshControls);

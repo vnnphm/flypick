@@ -9,7 +9,7 @@ import { createIdleFruit } from './idleFruit';
 const COLORS = ['#8da78e', '#c68b63'];
 const TRAIL_LIMIT = 180;
 
-export function createScene(container: HTMLElement) {
+export function createScene(container: HTMLElement, onAmbientChange?: (active: boolean) => void) {
   const scene = new THREE.Scene();
   // Perspective/orbit setup adapted from the pinned fly.ai renderer; see fly-ai-NOTICE.md.
   const camera = new THREE.PerspectiveCamera(52, 1, 0.05, 400);
@@ -214,8 +214,13 @@ export function createScene(container: HTMLElement) {
   const ink = new THREE.Color('#677d66');
   const color = new THREE.Color();
   // One transform writer selects local ambient presentation OR the supplied pose.
+  let wasAmbient = false;
   function renderFly(now: number) {
     const pose = idle.sample(now, reducedMotion.matches);
+    if (pose.ambient !== wasAmbient) {
+      wasAmbient = pose.ambient;
+      onAmbientChange?.(wasAmbient);
+    }
     fly.root.position.set(pose.x, pose.y, pose.z);
     locator.position.set(pose.x, 0.055, pose.z);
     fly.root.rotation.set(pose.pitch, pose.heading, 0, 'YXZ');
