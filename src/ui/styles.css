@@ -52,10 +52,7 @@ h3 { font-family: Georgia, serif; font-size: 20px; font-weight: 400; margin: 4px
 .decision .eyebrow { font-size: 8px; }
 .decision h2 { font-family: Georgia, serif; font-size: 22px; font-weight: 400; margin: 7px 0; overflow-wrap: anywhere; }
 .decision > p:last-child { font-size: 12px; color: #626957; margin: 0 auto; max-width: 640px; }
-.action-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #faf8f0; border-top: 1px solid #dfddce; padding: 18px 26px; }
-.approval { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 600; }
-.approval input { width: 18px; height: 18px; accent-color: #35543c; margin: 0; }
-.approval small { display: block; font-weight: 400; color: #747966; margin-top: 4px; font-size: 10px; }
+.action-bar { display: flex; align-items: center; justify-content: flex-end; gap: 20px; background: #faf8f0; border-top: 1px solid #dfddce; padding: 18px 26px; }
 .buttons { display: flex; gap: 10px; }
 .button { padding: 12px 20px; border-radius: 9px; font-size: 12px; font-weight: 600; min-height: 44px; }
 .primary { background: #304b38; color: #fffdf3; border: 1px solid #304b38; min-width: 155px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }

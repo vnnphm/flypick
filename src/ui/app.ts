@@ -16,7 +16,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
           <div class="world-and-brain" id="stage"><div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div><aside class="brain-host" id="brain-panel" aria-label="Fly Brain telemetry"></aside></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
-          <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
+          <div class="action-bar"><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
           <p class="action-error" id="action-error" role="alert" hidden></p>
         </section>
         <footer class="footer"><p id="disclosure"></p><details><summary>How the fly picks</summary><p>The live experience maps menu features to sensory signals for a simulated fly brain. The simulation supplies the fly’s position and the final result. Wings and lighting are decorative.</p><p>These designed signals do not measure food quality or biological food preference. Your shortlist stays your choice.</p></details></footer>
@@ -26,15 +26,12 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   const get = <T extends HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
   const start = get<HTMLButtonElement>('start');
   const reset = get<HTMLButtonElement>('reset');
-  const approve = get<HTMLInputElement>('approve');
   const actionError = get('action-error');
   const sceneContainer = get('scene');
   const brainPanel = mountBrainPanel(get('brain-panel'), controller);
   let scene: ReturnType<typeof createScene> | undefined;
-  let sceneFailed = false;
   try { scene = createScene(sceneContainer, brainPanel.setAmbient); }
   catch (error) {
-    sceneFailed = true;
     sceneContainer.replaceChildren();
     const notice = document.createElement('p');
     notice.className = 'scene-error';
@@ -49,19 +46,13 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   let decisionKey = '';
   const cards = new Map<string, HTMLElement>();
   function refreshControls() {
-    start.disabled = !state || state.status !== 'ready' || !approve.checked || pending || sceneFailed || state.restaurants.length !== 2;
-    approve.disabled = pending || state?.status !== 'ready';
+    // Ask the Fly stays clickable; when a run can't start yet, clicking explains why instead
     reset.disabled = pending || !state;
     start.setAttribute('aria-busy', String(pending));
   }
   function update(next: SimulationState) {
     if (disposed) return;
-    if (state?.runId !== next.runId) {
-      actionError.hidden = true;
-      const previousOptions = state?.restaurants.map(r => `${r.id}:${r.name}`).join('|');
-      const nextOptions = next.restaurants.map(r => `${r.id}:${r.name}`).join('|');
-      if (previousOptions !== nextOptions) approve.checked = false;
-    }
+    if (state?.runId !== next.runId || next.status === 'ready') actionError.hidden = true;
     state = next;
     scene?.update(next);
     brainPanel.update(next);
@@ -113,7 +104,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       'no-choice': 'The fly couldn’t decide. Try again?', error: 'Something interrupted the run.',
     };
     const messages: Record<SimulationState['status'], string> = {
-      loading: 'Preparing the restaurant options and simulation.', ready: 'Confirm your two options, then ask the fly.',
+      loading: 'Preparing the restaurant options and simulation.', ready: 'Ask the fly when you’re ready.',
       running: 'Watch the trail. The simulation will report the result.',
       selected: 'One tiny decision, settled. Reset to prepare another run.',
       'no-choice': 'No restaurant was selected. Reset when you’re ready.', error: 'No choice was made. Reset to try again.',
@@ -146,11 +137,25 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       if (!disposed) refreshControls();
     }
   }
-  const onStart = () => { if (!start.disabled) void act('start'); };
+  function notReady(status: SimulationState['status'] | undefined): string {
+    if (status === 'running') return 'The fly is already deciding.';
+    if (status === 'selected' || status === 'no-choice') return 'Press Reset to ask the fly again.';
+    if (status === 'error') return 'Press Reset to try again.';
+    if (options.search) return state?.message ?? 'Pick two restaurants first.';
+    return 'Still getting ready. One moment.';
+  }
+  const onStart = () => {
+    if (pending) return;
+    if (state?.status !== 'ready' || state.restaurants.length !== 2) {
+      actionError.textContent = notReady(state?.status);
+      actionError.hidden = false;
+      return;
+    }
+    void act('start');
+  };
   const onReset = () => { if (!reset.disabled) void act('reset'); };
   start.addEventListener('click', onStart);
   reset.addEventListener('click', onReset);
-  approve.addEventListener('change', refreshControls);
   const unsubscribe = controller.subscribe(update);
   return {
     previewHost: get('preview-tools'),
@@ -161,7 +166,6 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       brainPanel.dispose();
       start.removeEventListener('click', onStart);
       reset.removeEventListener('click', onReset);
-      approve.removeEventListener('change', refreshControls);
       scene?.dispose();
       root.replaceChildren();
     },

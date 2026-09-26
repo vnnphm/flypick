@@ -83,6 +83,8 @@ Three.js currently produces Vite's advisory warning for a bundle larger than 500
 
 Nothing falls back silently: if Firecrawl or the model fails, the page shows an error and no choice.
 
+*Ask the Fly* is always clickable. It starts a run only when both restaurants and the brain are ready; otherwise it says what is still missing (or to press Reset after a result).
+
 ## Picking restaurants (search mode)
 
 1. **City.** Type a city (Nominatim finds it; pick one if several match) or press *Use my location*
@@ -99,7 +101,7 @@ Nothing falls back silently: if Firecrawl or the model fails, the page shows an 
    No menu is ever invented. Successful reads are kept in `.cache/menus/` (gitignored) and reused for
    6 hours, labeled “saved”.
 4. **Map and run.** The arena appears once both menus are read and the brain is loaded; the rest of the
-   flow (approve, *Ask the Fly*, result, Reset) is unchanged. Change a place any time you're not mid-run.
+   flow (*Ask the Fly*, result, Reset) is unchanged. Change a place any time you're not mid-run.
 
 The read-only **Fly Brain** panel appears with the map: beside it on wide screens and below it
 on smaller screens (collapsed on mobile). It shows neural steering, measured firing rates,
@@ -164,7 +166,7 @@ decoded turn, rates, and the run log.
 
 Open `/?mode=preview`.
 
-Confirm “I’d eat at either,” then click “Ask the Fly.” Open **Visual preview controls**
+Click “Ask the Fly.” Open **Visual preview controls**
 below the page and click **Play sample motion** to watch an eight-second scripted loop
 with a movement trail. **Stop motion** stops it; Reset cancels it and clears the trail.
 The loop never selects a restaurant and is not neural movement or a genuine recorded run.
@@ -215,7 +217,7 @@ The Docker production build and strict typecheck pass. Four Node tests cover pre
 reset/unsubscribe behavior, snapshot isolation, scripted playback completion, cancellation,
 and the absence of an automatic winner. Four additional ambient-isolation tests run with
 `docker compose run --rm web node --test src/scene/idle.test.mjs`.
-Chrome visual review covered desktop and narrow layouts, approval/start, sample poses,
+Chrome visual review covered desktop and narrow layouts, start, sample poses,
 selection, no-choice, loading, error, and reset. Exact 1280×720 / 1440×900 presets,
 performance measurements remain unverified. Reduced motion is
 implemented through CSS and `prefers-reduced-motion`; it has not been visually exercised.
