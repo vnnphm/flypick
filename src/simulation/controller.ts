@@ -2,15 +2,16 @@
  * The SimulationController the UI mounts. It owns run lifecycle and publishes read-only snapshots;
  * the worker owns the authoritative simulation. Modes are chosen explicitly and never switch on
  * their own:
- *   live    full connectome + menus (live Firecrawl, or the labeled saved captures)
+ *   live    full connectome + menus: two restaurants the user searches for (read with Firecrawl),
+ *           or the fixed shortlist (live Firecrawl, or the labeled saved captures)
  *   replay  a genuine recorded live run, replayed through the same engine
  *   mock    synthetic steering for UI work, labeled as such
  */
-import type { RestaurantSnapshot, SimulationController, SimulationDetails, SimulationState } from "../contracts.ts";
+import type { PlaceResult, RestaurantSnapshot, SimulationController, SimulationDetails, SimulationState, SlotState } from "../contracts.ts";
 import { SALIENCE_BASE } from "../data/encoder.ts";
 import { cachedCapture, loadMenus } from "../data/menus.ts";
 import { RESTAURANTS } from "../data/restaurants.ts";
-import { toSnapshot } from "../data/snapshot.ts";
+import { placeSnapshot, toSnapshot, type MenuCapture } from "../data/snapshot.ts";
 import { CONFIG, CONNECTOME, type SimConfig } from "./config.ts";
 import { placeTargets, type Target } from "./geometry.ts";
 import { isCurrent, type FromWorker, type ToWorker } from "./protocol.ts";
@@ -18,7 +19,8 @@ import type { RunLog } from "./recorder.ts";
 
 export type ControllerOptions = {
   mode: "live" | "mock" | "replay";
-  menuSource: "live" | "cached";
+  /** search: two restaurants the user picks; live/cached: the fixed shortlist */
+  menuSource: "search" | "live" | "cached";
 };
 
 const REPLAYS = import.meta.glob<RunLog>("../data/fixtures/runs/*.json", { import: "default" });
@@ -28,6 +30,11 @@ const TRAIL_MAX = 600;
 
 export type FlyPickController = SimulationController & {
   subscribeDetails(listener: (details: SimulationDetails) => void): () => void;
+  /**
+   * Search mode: put a place in slot 0 or 1 (or clear it with null) and read its menu. The run
+   * becomes ready once both menus are read and the brain is loaded. Not allowed during a run.
+   */
+  choosePlace(slot: 0 | 1, place: PlaceResult | null): Promise<void>;
   /** Stop the worker (hot reload, page teardown). */
   dispose(): void;
 };
@@ -45,6 +52,10 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
   let seed = 0;
   let targets: Target[] = [];
   let dirtyDetails = false;
+  const search = mode === "live" && options.menuSource === "search";
+  let brainReady = false;
+  const reads: (AbortController | null)[] = [null, null];
+  const emptySlot = (slot: 0 | 1): SlotState => ({ slot, place: null, status: "empty", message: null, menu: null });
 
   let state: SimulationState = {
     runId: newRunId(), mode, status: "loading", fly: { ...config.start }, restaurants: [],
@@ -54,7 +65,7 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
     runId: state.runId, mode, menuSource: mode === "mock" ? null : options.menuSource, locomotion: config.locomotion,
     simTimeS: 0, timeoutS: config.timeoutS, dwellRequiredS: config.dwellS, dwell: {}, trail: [], menus: [],
     runtime: { label: runtimeLabel(), modelId: null, revision: null, neurons: null, synapses: null, stepMs: null, progress: null },
-    motor: null, simSpeed: 1, log: null,
+    motor: null, simSpeed: 1, log: null, slots: search ? [emptySlot(0), emptySlot(1)] : [],
   };
 
   function newRunId() {
@@ -82,8 +93,8 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
 
   function progress(text: string) {
     publishDetails({ runtime: { ...details.runtime, progress: text } });
-    // background model progress never overrides an error or a ready run
-    if (state.status === "loading") publish({ message: text });
+    // background model progress never overrides an error or a ready run, or the search prompts
+    if (state.status === "loading" && (!search || details.slots.every((sl) => sl.status === "ready"))) publish({ message: text });
   }
 
   function getWorker(): Worker {
@@ -197,12 +208,20 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
           const c = cachedCapture(r.id);
           return c ? toSnapshot(c, "cached") : null;
         }).filter((m): m is RestaurantSnapshot => m !== null);
+      } else if (search) {
+        // the brain loads while the user picks restaurants
+        menus = [];
+        settle();
+        await loadBrain();
+        brainReady = true;
+        settle();
+        return;
       } else {
         progress(options.menuSource === "cached" ? "Opening the saved Firecrawl menus." : "Reading both menus with Firecrawl.");
         // the 58 MB brain download overlaps the Firecrawl requests
         const brain = loadBrain();
         brain.catch(() => {});
-        menus = await loadMenus(options.menuSource);
+        menus = await loadMenus(options.menuSource === "cached" ? "cached" : "live");
         publishDetails({ menus });
         await brain;
       }
@@ -212,6 +231,73 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
       initError = err instanceof Error ? err.message : String(err);
       publish({ status: "error", restaurants: [], message: initError });
     }
+  }
+
+  function setSlot(slot: 0 | 1, next: Omit<SlotState, "slot">) {
+    const slots = details.slots.map((sl) => (sl.slot === slot ? { slot, ...next } : sl));
+    publishDetails({ slots });
+  }
+
+  /** Search mode: ready once both menus are read and the brain is loaded; otherwise say what is missing. */
+  function settle() {
+    if (!search || state.status === "running" || initError) return;
+    const slots = details.slots;
+    if (brainReady && slots.every((sl) => sl.status === "ready" && sl.menu)) {
+      menus = slots.map((sl) => sl.menu!);
+      publishDetails({ menus });
+      prepare();
+      return;
+    }
+    const message = slots.some((sl) => sl.status === "reading")
+      ? "Reading the menus with Firecrawl."
+      : slots.some((sl) => sl.status !== "ready")
+        ? "Choose two restaurants you’d eat at."
+        : details.runtime.progress ?? "Preparing the fly brain.";
+    publish({ status: "loading", restaurants: [], selectedRestaurantId: null, message });
+  }
+
+  async function choosePlace(slot: 0 | 1, place: PlaceResult | null): Promise<void> {
+    if (!search) throw new Error("restaurant search is only available in live search mode");
+    if (state.status === "running") throw new Error("wait for the current run to finish");
+    reads[slot]?.abort();
+    reads[slot] = null;
+    if (!place) {
+      setSlot(slot, { place: null, status: "empty", message: null, menu: null });
+      settle();
+      return;
+    }
+    if (details.slots[1 - slot]?.place?.id === place.id) {
+      setSlot(slot, { place, status: "error", message: "That’s already your other choice. Pick a different restaurant.", menu: null });
+      settle();
+      return;
+    }
+    const ctl = new AbortController();
+    reads[slot] = ctl;
+    setSlot(slot, { place, status: "reading", message: "Reading menu…", menu: null });
+    settle();
+    try {
+      const res = await fetch("/api/menus/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId: place.id }),
+        signal: ctl.signal,
+      });
+      const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { capture?: MenuCapture; reused?: boolean; error?: string };
+      if (!res.ok || !body.capture) throw new Error(body.error ?? `HTTP ${res.status}`);
+      const menu = placeSnapshot(body.capture, body.reused ? "cached" : "live");
+      if (reads[slot] !== ctl) return;
+      const saved = body.reused ? ` · saved ${new Date(menu.fetchedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "";
+      setSlot(slot, { place, status: "ready", message: `Ready · ${menu.extraction.menu.length} menu items${saved}`, menu });
+    } catch (err) {
+      if (reads[slot] !== ctl) return;
+      const why = err instanceof Error ? err.message : String(err);
+      setSlot(slot, { place, status: "error", menu: null,
+        message: /no menu items|empty menu/.test(why)
+          ? `Couldn’t find menu items for ${place.name}. Choose another place.`
+          : `${why.replace(/\.$/, "")}. Choose another place.` });
+    }
+    reads[slot] = null;
+    settle();
   }
 
   /** A fresh ready state: new run id, new brain seed, new independent side draw. */
@@ -226,9 +312,10 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
       seed = randomU32();
       const swap = (randomU32() & 1) === 1;
       const byId = new Map(menus.map((m) => [m.id, m]));
-      targets = placeTargets(
-        RESTAURANTS.map((r) => ({ id: r.id, name: r.name, salience: mode === "mock" ? (byId.get(r.id)?.salience ?? SALIENCE_BASE) : byId.get(r.id)!.salience })),
-        swap, config);
+      const choices = mode === "mock"
+        ? RESTAURANTS.map((r) => ({ id: r.id, name: r.name, salience: byId.get(r.id)?.salience ?? SALIENCE_BASE }))
+        : menus.map((m) => ({ id: m.id, name: m.displayName, salience: m.salience }));
+      targets = placeTargets(choices, swap, config);
     }
     publishDetails({ runId, simTimeS: 0, dwell: Object.fromEntries(targets.map((t) => [t.id, 0])), trail: [], motor: null, log: null,
       timeoutS: runConfig.timeoutS, dwellRequiredS: runConfig.dwellS });
@@ -242,6 +329,10 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
   function readyMessage() {
     if (mode === "mock") return "Mock mode: synthetic steering for interface work. The fly brain is not running.";
     if (mode === "replay") return `Recorded run from ${replay?.createdAt.slice(0, 10)}. Replays the original brain output; no new decision is made.`;
+    if (search) {
+      const saved = menus.filter((m) => m.mode === "cached").length;
+      return `Both menus are ready${saved ? ` (${saved} from a capture saved in the last few hours)` : ""}. The fly brain is loaded.`;
+    }
     if (options.menuSource === "cached") {
       const when = menus.map((m) => m.fetchedAt.slice(0, 10)).sort()[0];
       return `Menus from a saved Firecrawl capture (${when}). The fly brain is loaded.`;
@@ -262,6 +353,11 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
     },
     async reset() {
       send({ type: "stop", runId: state.runId });
+      if (search && !initError) {
+        state = { ...state, status: "loading" }; // leave "running" so settle() re-prepares
+        settle();
+        return;
+      }
       if (initError || state.status === "loading") {
         if (state.status !== "loading") await init();
         return;
@@ -273,6 +369,7 @@ export function createSimulationController(options: ControllerOptions): FlyPickC
       listener(structuredClone(state));
       return () => { listeners.delete(listener); };
     },
+    choosePlace,
     subscribeDetails(listener) {
       detailListeners.add(listener);
       listener(structuredClone(details));

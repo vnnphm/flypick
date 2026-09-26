@@ -11,7 +11,7 @@ let state: SimulationState = {
 };
 let details: SimulationDetails = {
   runId: state.runId, mode: 'mock', menuSource: null, locomotion: 'constant-speed-neural-steering',
-  simTimeS: 0, timeoutS: 30, dwellRequiredS: 1, dwell: {a: 0, b: 0}, trail: [], menus: [], motor: null, simSpeed: 1, log: null,
+  simTimeS: 0, timeoutS: 30, dwellRequiredS: 1, dwell: {a: 0, b: 0}, trail: [], menus: [], slots: [], motor: null, simSpeed: 1, log: null,
   runtime: {label: 'Development fixture', modelId: null, revision: 'fixture-only', neurons: null, synapses: null, stepMs: null, progress: null},
 };
 const states = new Set<(s: SimulationState) => void>();

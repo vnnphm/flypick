@@ -1,5 +1,6 @@
 import { mountFlyPick } from './ui/app';
 import { createPreviewController } from './ui/previewController';
+import { mountRestaurantSearch } from './ui/search';
 import { createSimulationController } from './simulation/controller.ts';
 import './ui/styles.css';
 
@@ -7,8 +8,9 @@ const root = document.querySelector<HTMLDivElement>('#app');
 if (!root) throw new Error('App container is missing.');
 
 // Modes are explicit and never switch on their own:
-//   (default)       live fly brain, menus read live with Firecrawl
-//   ?menus=cached   live fly brain, the saved Firecrawl captures (labeled)
+//   (default)          live fly brain; search a city and two restaurants, menus read with Firecrawl
+//   ?menus=shortlist   live fly brain, the fixed shortlist read live with Firecrawl
+//   ?menus=cached      live fly brain, the shortlist's saved Firecrawl captures (labeled)
 //   ?mode=replay    a genuine recorded run
 //   ?mode=mock      synthetic steering for interface work
 //   ?mode=preview   the visual preview with authored fixtures
@@ -24,12 +26,17 @@ if (mode === 'preview') {
     app.dispose();
   });
 } else {
+  const menus = params.get('menus');
+  const runMode = mode === 'replay' || mode === 'mock' ? mode : 'live';
+  const search = runMode === 'live' && menus !== 'cached' && menus !== 'shortlist';
   const controller = createSimulationController({
-    mode: mode === 'replay' || mode === 'mock' ? mode : 'live',
-    menuSource: params.get('menus') === 'cached' ? 'cached' : 'live',
+    mode: runMode,
+    menuSource: search ? 'search' : menus === 'cached' ? 'cached' : 'live',
   });
-  const app = mountFlyPick(root, controller);
+  const app = mountFlyPick(root, controller, { search });
+  const removeSearch = search ? mountRestaurantSearch(app.pickerHost, controller) : () => {};
   import.meta.hot?.dispose(() => {
+    removeSearch();
     app.dispose();
     controller.dispose();
   });

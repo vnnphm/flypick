@@ -9,3 +9,4 @@ dist/
 # model files: npm run fetch:connectome
 public/connectome/
 runs/
+.cache/

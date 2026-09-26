@@ -60,5 +60,15 @@ view were exercised. Browser QA also covered fixture left/neutral/right, 7 Hz ov
 replay labels, and repeated remounts (one state and one details listener). Desktop and
 390 px layouts were inspected; mobile canvas measured 352 px with no horizontal overflow.
 
-Restaurant search is not present in this checkout. Do not merge backend/search code
-just to enable the panel: the current real telemetry API is sufficient.
+Restaurant search is integrated on `feature/search-brain-integration`. The picker sits
+above the shared world/panel wrapper; both stay hidden until two restaurant menus are
+ready. Search owns restaurant selection and the controller continues to own decisions.
+The panel uses the same real telemetry API without changes to backend behavior.
+
+Integration verification: real city/restaurant search and Firecrawl loaded Zuni Café
+(19 items) and Souvla (15 items). The live connectome selected Zuni Café at 9.2 simulated
+seconds; the panel retained the final reading. Reset cleared rates/time/dwell and restored
+the picker; changing a place hid both world and panel. Desktop and 390 px mobile layouts,
+mobile expansion, canvas resize, and Reset view were checked in Chrome. Build/typecheck,
+11 frontend tests, 4 ambient tests, and all 16 controller checks passed. The existing
+large-bundle advisory remains; no separate lint script exists.

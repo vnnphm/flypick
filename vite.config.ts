@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [flypickApi(env.FIRECRAWL_API_KEY)],
     // menu captures and run logs are written while the app runs; they must not reload the page
-    server: { watch: { ignored: ['**/src/data/fixtures/**', '**/runs/**'] } },
+    server: { watch: { ignored: ['**/src/data/fixtures/**', '**/runs/**', '**/.cache/**'] } },
     worker: { format: 'es' },
   };
 });

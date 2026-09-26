@@ -1,7 +1,7 @@
 /**
- * Server-side Firecrawl call: one allowlisted page -> validated MenuCapture. The API key comes
- * from FIRECRAWL_API_KEY and never reaches client code. Firecrawl v2 /scrape with JSON mode:
- * https://docs.firecrawl.dev/features/llm-extract
+ * Server-side Firecrawl calls: JSON extraction of a menu page (/scrape), finding a site's menu page
+ * (/map) and finding a restaurant's pages on the web (/search). The API key comes from
+ * FIRECRAWL_API_KEY and never reaches client code. https://docs.firecrawl.dev/features/llm-extract
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -10,7 +10,8 @@ import { restaurantById } from "../src/data/restaurants.ts";
 import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA, validateExtraction } from "../src/data/schema.ts";
 import type { MenuCapture } from "../src/data/snapshot.ts";
 
-const ENDPOINT = "https://api.firecrawl.dev/v2/scrape";
+const API = "https://api.firecrawl.dev/v2";
+const ENDPOINT = `${API}/scrape`;
 const TIMEOUT_MS = 90_000;
 const MAX_RESPONSE_BYTES = 2_000_000;
 
@@ -34,44 +35,77 @@ async function readCapped(res: Response): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export async function scrapeMenu(id: string, apiKey = process.env.FIRECRAWL_API_KEY): Promise<MenuCapture> {
-  const restaurant = restaurantById(id);
+function headers(apiKey: string | undefined): Record<string, string> {
   // Firecrawl serves keyless requests at a low rate limit; a key raises it.
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-  const res = await fetch(ENDPOINT, {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (apiKey) h.Authorization = `Bearer ${apiKey}`;
+  return h;
+}
+
+async function call<T>(path: string, body: unknown, apiKey: string | undefined, timeoutMs = TIMEOUT_MS): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
     method: "POST",
-    headers,
-    body: JSON.stringify({
-      url: restaurant.url,
-      formats: [{ type: "json", schema: EXTRACTION_SCHEMA, prompt: EXTRACTION_PROMPT }],
-      onlyMainContent: true,
-      timeout: TIMEOUT_MS - 10_000,
-    }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    headers: headers(apiKey),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const text = await readCapped(res);
-  let body: { success?: boolean; error?: string; data?: { json?: unknown; metadata?: Record<string, unknown> } };
+  let parsed: { success?: boolean; error?: string } & T;
   try {
-    body = JSON.parse(text);
+    parsed = JSON.parse(text);
   } catch {
     throw new Error(`Firecrawl HTTP ${res.status}: not JSON`);
   }
-  if (!res.ok || !body.success || !body.data) {
-    throw new Error(`Firecrawl HTTP ${res.status}: ${body.error ?? "no data"}`);
-  }
+  if (!res.ok || !parsed.success) throw new Error(`Firecrawl HTTP ${res.status}: ${parsed.error ?? "no data"}`);
+  return parsed;
+}
+
+/** Firecrawl JSON extraction of one page -> validated menu, plus page metadata. */
+export async function extractMenu(url: string, apiKey = process.env.FIRECRAWL_API_KEY) {
+  const body = await call<{ data?: { json?: unknown; metadata?: Record<string, unknown> } }>("/scrape", {
+    url,
+    formats: [{ type: "json", schema: EXTRACTION_SCHEMA, prompt: EXTRACTION_PROMPT }],
+    onlyMainContent: true,
+    timeout: TIMEOUT_MS - 10_000,
+  }, apiKey);
+  if (!body.data) throw new Error("Firecrawl returned no data");
   const meta = body.data.metadata ?? {};
   return {
-    id,
-    sourceUrl: restaurant.url,
-    fetchedAt: new Date().toISOString(),
-    provider: "firecrawl",
     firecrawl: {
       endpoint: ENDPOINT,
       title: typeof meta.title === "string" ? meta.title : null,
       statusCode: typeof meta.statusCode === "number" ? meta.statusCode : null,
     },
     extraction: validateExtraction(body.data.json),
+  };
+}
+
+export type FoundLink = { url: string; title: string | null; description: string | null };
+
+/** Links on a site that match a search word (Firecrawl /map; 1 credit). */
+export async function mapSite(url: string, search: string, apiKey = process.env.FIRECRAWL_API_KEY): Promise<FoundLink[]> {
+  const body = await call<{ links?: (FoundLink | string)[] }>("/map", { url, search, limit: 30 }, apiKey, 30_000);
+  return (body.links ?? []).map((l) => (typeof l === "string" ? { url: l, title: null, description: null } : l));
+}
+
+/** Web search results (Firecrawl /search). */
+export async function searchWeb(query: string, apiKey = process.env.FIRECRAWL_API_KEY): Promise<FoundLink[]> {
+  const body = await call<{ data?: { web?: FoundLink[] } | FoundLink[] }>("/search", { query, limit: 8 }, apiKey, 30_000);
+  const web = Array.isArray(body.data) ? body.data : body.data?.web ?? [];
+  return web.filter((r) => typeof r?.url === "string");
+}
+
+/** The fixed shortlist: one allowlisted page -> MenuCapture. */
+export async function scrapeMenu(id: string, apiKey = process.env.FIRECRAWL_API_KEY): Promise<MenuCapture> {
+  const restaurant = restaurantById(id);
+  const { firecrawl, extraction } = await extractMenu(restaurant.url, apiKey);
+  return {
+    id,
+    sourceUrl: restaurant.url,
+    fetchedAt: new Date().toISOString(),
+    provider: "firecrawl",
+    firecrawl,
+    extraction,
   };
 }
 
