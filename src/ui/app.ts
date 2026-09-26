@@ -12,7 +12,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
         <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
         <section class="experience" aria-label="Restaurant choice arena">
           <div class="arena-toolbar"><span><span class="status-dot"></span><span id="arena-status">Preparing the stage</span></span><span class="arena-note">ONE FLY · TWO POSSIBILITIES</span></div>
-          <div class="stage"><div id="scene" role="img" aria-label="A fly in a sunny miniature courtyard with two restaurant storefronts, striped awnings, and potted trees."></div><div class="stage-footnote">A little courtyard. Two good possibilities.</div></div>
+          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div><div class="stage-footnote">A tiny habitat. Two good possibilities.</div></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
@@ -100,7 +100,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     const selected = next.restaurants.find(r => r.id === next.selectedRestaurantId);
     const titles: Record<SimulationState['status'], string> = {
       loading: 'Getting things ready…', ready: 'Good with both? Let’s begin.',
-      running: next.mode === 'mock' ? 'Preview running. Waiting for a sample pose.' : 'A little patience. A little fly.',
+      running: next.mode === 'mock' ? 'Visual preview in progress.' : 'A little patience. A little fly.',
       selected: selected ? `${next.mode === 'mock' ? 'Preview pick' : 'The fly picked'}: ${selected.name}.` : 'The result is unavailable.',
       'no-choice': 'The fly couldn’t decide. Try again?', error: 'Something interrupted the run.',
     };
@@ -122,16 +122,19 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   }
   async function act(action: 'start' | 'reset') {
     if (pending || disposed) return;
+    scene?.beginAction();
+    let succeeded = false;
     pending = true;
     actionError.hidden = true;
     refreshControls();
-    try { await controller[action](); }
+    try { await controller[action](); succeeded = true; }
     catch {
       if (!disposed) {
         actionError.textContent = `Couldn’t ${action} the run. Please try again.`;
         actionError.hidden = false;
       }
     } finally {
+      if (!disposed) scene?.endAction(action, succeeded);
       pending = false;
       if (!disposed) refreshControls();
     }

@@ -1,7 +1,7 @@
 # FlyPick
 
 A TypeScript + Vite + plain Three.js visual frontend: a miniature restaurant
-courtyard, animated fly, destination markers, trail, restaurant cards, and run controls.
+garden habitat, animated fly, destination markers, trail, restaurant cards, and run controls.
 The current entry point is an explicitly labeled **visual preview** with example
 restaurants. No brain runtime, Firecrawl integration, or automatic decision is connected.
 
@@ -43,7 +43,7 @@ Three.js currently produces Vite's advisory warning for a bundle larger than 500
 
 ## Folders
 
-- `src/scene/`: Read-only state rendering, original fly geometry, and decorative courtyard.
+- `src/scene/`: Read-only state rendering, fly geometry, and decorative habitat.
 - `src/brain/`: Reserved for future brain code; currently empty.
 - `src/data/`: Reserved for future restaurant data code; currently empty.
 - `src/ui/`: Cards, controls, status displays, styles, and manual visual preview fixtures.
@@ -53,10 +53,13 @@ Three.js currently produces Vite's advisory warning for a bundle larger than 500
 
 ## Review the visual preview
 
-Confirm “I’d eat at either,” then click “Ask the Fly.” Only cosmetic wings animate.
-Open **Visual preview controls** below the page to supply a sample pose or inspect
+Confirm “I’d eat at either,” then click “Ask the Fly.” Open **Visual preview controls**
+below the page and click **Play sample motion** to watch an eight-second scripted loop
+with a movement trail. **Stop motion** stops it; Reset cancels it and clears the trail.
+The loop never selects a restaurant and is not neural movement or a genuine recorded run.
+The same controls let you supply a single sample pose or inspect
 loading, either selection, no-choice, and error screens. These buttons supply authored
-fixtures; they do not run a simulation or determine a real winner. Reset returns to
+fixtures; they do not run a neural simulation or determine a real winner. Reset returns to
 ready with a new run ID and clears the trail. Both restaurant names are fictional
 examples. No live feed ever falls back to these fixtures automatically.
 
@@ -72,25 +75,37 @@ mounting in `src/main.ts`; retain disposal on hot reload. No UI API change is ne
 - Destination coordinates and radii come from state. The scene doesn't calculate movement,
   collision, dwell, timeout, or winners. Only `selected` with a matching restaurant ID highlights a result.
 - Wings and slight body bobbing are cosmetic; reduced-motion preference disables them.
-  Camera framing stays fixed during each run. Trail samples come only from received positions.
+  The small fly has a locator ring for readability. Drag to orbit, scroll/pinch to zoom,
+  and use Reset view to frame both restaurants. Camera controls are bounded and local
+  to the scene. Trail samples come only from received positions.
 - Live, mock, and replay states receive distinct labels. Supply readable preparation/error
   messages through `message`; replay must use genuine recorded data from the simulation owner.
 - The current contract has no menu URLs or dwell progress. Those UI elements await agreed
   fields from the simulation/data owner; the frontend does not invent them.
 
-`src/scene/courtyard.ts` owns the decorative environment. It can later become a larger
-fly.ai-inspired landscape without changing the UI/controller contract. Buildings and
-plants have no collision meaning. A larger navigable world would also need the simulation
+`src/scene/courtyard.ts` owns the miniature fly.ai-inspired habitat: continuous ground,
+irregular fruit patches, plants, grasses, rocks, and the existing two storefronts.
+All terrain and props are decorative; destination pads still use supplied coordinates/radii.
+It can later become a larger landscape without changing the UI/controller contract.
+Buildings and plants have no collision meaning. A larger navigable world would also need the simulation
 owner to define its actual boundaries and obstacles; decorative scenery alone cannot do that.
 
-Visual guidance: [fly.ai's world renderer](https://github.com/alextitonis/fly.ai/blob/main/world/src/scene.ts)
-informed the simple fly silhouette and lighting approach. All scene geometry here is
-original; no upstream code, models, textures, or assets are copied.
+Fly geometry, camera patterns, and prop builders adapt MIT-licensed code from
+[fly.ai's world renderer](https://github.com/alextitonis/fly.ai/blob/40fbeca60e5c16742f20b4c2c067de915b388e66/world/src/scene.ts).
+See [visual handoff](src/scene/VISUALS.md) and [attribution and license](src/scene/fly-ai-NOTICE.md).
+
+Optional frontend-only idle preview: open `http://localhost:5173/?ambient=1`.
+While mock state is ready, the fly roams beside two fruit props and briefly lands/nods.
+Start stops this synchronously; the normal URL, live/replay modes, and reduced-motion
+preference keep it disabled. It supplies no sensory inputs or decisions. See
+[`src/scene/IDLE.md`](src/scene/IDLE.md) for its action hooks and focused checks.
 
 ## Verification and remaining work
 
-The Docker production build and strict typecheck pass. Two Node tests cover preview
-reset/unsubscribe behavior, snapshot isolation, and the absence of an automatic winner.
+The Docker production build and strict typecheck pass. Four Node tests cover preview
+reset/unsubscribe behavior, snapshot isolation, scripted playback completion, cancellation,
+and the absence of an automatic winner. Four additional ambient-isolation tests run with
+`docker compose run --rm web node --test src/scene/idle.test.mjs`.
 Chrome visual review covered desktop and narrow layouts, approval/start, sample poses,
 selection, no-choice, loading, error, and reset. Exact 1280×720 / 1440×900 presets,
 performance measurements, and a live neural run remain unverified. Reduced motion is
