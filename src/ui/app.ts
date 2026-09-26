@@ -11,8 +11,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       <main>
         <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
         <section class="experience" aria-label="Restaurant choice arena">
-          <div class="arena-toolbar"><span><span class="status-dot"></span><span id="arena-status">Preparing the stage</span></span><span class="arena-note">ONE FLY · TWO POSSIBILITIES</span></div>
-          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div><div class="stage-footnote">A tiny habitat. Two good possibilities.</div></div>
+          <div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><label class="approval"><input id="approve" type="checkbox"><span>I’d eat at either.<small>Two places you already like.</small></span></label><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
@@ -113,7 +112,6 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     const nextDecisionKey = JSON.stringify([next.status, next.mode, next.selectedRestaurantId, next.message, selected?.name]);
     if (nextDecisionKey !== decisionKey) {
       decisionKey = nextDecisionKey;
-      get('arena-status').textContent = { loading: 'Preparing', ready: 'Ready when you are', running: 'In motion', selected: 'Decision received', 'no-choice': 'No choice this time', error: 'Run interrupted' }[next.status];
       get('status-label').textContent = next.mode === 'mock' ? `Mock mode / ${next.status}` : next.mode === 'replay' ? `Recorded run / ${next.status}` : next.status.replace('-', ' ');
       get('status-title').textContent = titles[next.status];
       get('status-message').textContent = next.message || messages[next.status];
