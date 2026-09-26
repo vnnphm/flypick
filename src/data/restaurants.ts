@@ -7,7 +7,7 @@ export type Restaurant = { id: string; name: string; url: string };
 
 export const RESTAURANTS: readonly Restaurant[] = [
   { id: "sweetgreen", name: "sweetgreen", url: "https://www.sweetgreen.com/menu" },
-  { id: "tartine", name: "Tartine Bakery", url: "https://www.tartinebakery.com/menu" },
+  { id: "souvla", name: "Souvla", url: "https://www.souvla.com/menus/" },
 ];
 
 export function restaurantById(id: string): Restaurant {

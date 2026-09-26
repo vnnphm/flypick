@@ -1,7 +1,7 @@
 /**
  * Capture real Firecrawl menus for the allowlist and store them as the cached fixtures.
  *   npm run capture            # every restaurant
- *   npm run capture -- tartine # one
+ *   npm run capture -- souvla  # one
  */
 import { RESTAURANTS } from "../src/data/restaurants.ts";
 import { encodeMenu } from "../src/data/encoder.ts";

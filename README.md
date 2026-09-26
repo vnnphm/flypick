@@ -213,10 +213,12 @@ and during a run. Ambient motion stayed disabled in live mode, even with `ambien
 Cached menus reached ready after a server restart, and missing replay data produced
 an explicit error with Start disabled.
 
-**Data follow-up:** Tartine's returned capture contains cake-order categories and a gift
-card entry, not a useful food menu. The data owner should correct the source/extraction
-before treating the menu comparison as demo-ready. These generated captures and browser
-run logs remain local; they are not included in this integration commit. Generate your own
+**Current shortlist:** sweetgreen and Souvla. Souvla replaces Tartine, whose capture
+contained cake-order categories and a gift card entry. Souvla's official menu produced
+18 food/drink entries with dish names and ingredients checked against the source.
+The replacement pair completed a browser live-brain run using the saved Firecrawl
+captures; sweetgreen was selected after zone entry at 7.6 seconds plus one second dwell.
+These generated captures and browser run logs remain local; they are not committed. Generate your own
 captures with `npm run capture`, restart Vite, then use `/?menus=cached`. No browser replay
 fixture is included; `npm run record` creates one from saved captures.
 
