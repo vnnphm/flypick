@@ -1,12 +1,15 @@
-import { createScene } from './scene/createScene';
+import { mountFlyPick } from './ui/app';
+import { createPreviewController } from './ui/previewController';
 import './ui/styles.css';
 
-const container = document.querySelector<HTMLDivElement>('#scene');
-if (!container) throw new Error('Scene container is missing.');
+const root = document.querySelector<HTMLDivElement>('#app');
+if (!root) throw new Error('App container is missing.');
 
-try {
-  createScene(container);
-} catch (error) {
-  container.textContent = 'The 3D scene could not load. Try a browser with WebGL support.';
-  console.error(error);
-}
+// Explicit visual preview entry point. Replace with the teammate's controller at integration.
+const preview = createPreviewController();
+const app = mountFlyPick(root, preview.controller);
+const removePreviewControls = preview.mountControls(app.previewHost);
+import.meta.hot?.dispose(() => {
+  removePreviewControls();
+  app.dispose();
+});
