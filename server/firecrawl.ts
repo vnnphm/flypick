@@ -65,7 +65,10 @@ export async function extractMenu(url: string, apiKey = process.env.FIRECRAWL_AP
   const body = await call<{ data?: { json?: unknown; metadata?: Record<string, unknown> } }>("/scrape", {
     url,
     formats: [{ type: "json", schema: EXTRACTION_SCHEMA, prompt: EXTRACTION_PROMPT }],
-    onlyMainContent: true,
+    // Whole page, minus site chrome: "main content" detection drops tabbed menus on common
+    // restaurant platforms (e.g. BentoBox sites kept only the intro: 1 of ~18 items).
+    onlyMainContent: false,
+    excludeTags: ["nav", "footer"],
     timeout: TIMEOUT_MS - 10_000,
   }, apiKey);
   if (!body.data) throw new Error("Firecrawl returned no data");

@@ -5,7 +5,8 @@
  *   2. the best "menu" page on the restaurant's own website (Firecrawl /map)
  *   3. the website itself
  *   4. no website: the best menu page a web search finds (Firecrawl /search)
- * At most two pages are extracted per place. A menu that cannot be read is an error, never invented.
+ * At most two pages are extracted per place: the second only if the first fails or yields fewer
+ * than 3 items (then the page with more items is kept). A menu that cannot be read is an error, never invented.
  * Successful captures are kept in .cache/menus/ and reused for a few hours (labeled as saved).
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -17,6 +18,8 @@ import { placeDetails, type PlaceDetails } from "./places.ts";
 
 const CACHE = join(dirname(fileURLToPath(import.meta.url)), "../.cache/menus");
 const REUSE_MS = 6 * 60 * 60 * 1000;
+/** fewer items than this from the first page also tries the next candidate page */
+const ENOUGH_ITEMS = 3;
 
 const OFF_TOPIC = /(career|jobs?\b|blog|press|news|gift|catering|nutrition|allergen|privacy|terms|login|account|franchis|investor|landing|story|about|contact|faq|rewards|merch|shop\b)/;
 // a restaurant often lists several menus; prefer the main food menu over partial ones
@@ -101,26 +104,34 @@ export async function readPlaceMenu(id: string, apiKey = process.env.FIRECRAWL_A
   const place = await placeDetails(id);
   const found = await candidates(place, apiKey);
   if (!found.length) throw new Error(`No website or menu page could be found for ${place.name}.`);
+  // Read the best page; if it yields only a few items, also read the next candidate and keep
+  // whichever has more (at most two extractions per place).
+  let best: MenuCapture | null = null;
   let lastError = "";
   for (const { url, how } of found.slice(0, 2)) {
     try {
       const { firecrawl, extraction } = await extractMenu(url, apiKey);
-      const capture: MenuCapture = {
-        id,
-        sourceUrl: url,
-        fetchedAt: new Date().toISOString(),
-        provider: "firecrawl",
-        firecrawl,
-        extraction,
-        place: { id, name: place.name, address: place.address },
-        discovery: { how, website: place.website },
-      };
-      await mkdir(CACHE, { recursive: true });
-      await writeFile(join(CACHE, `${id}.json`), JSON.stringify(capture, null, 2) + "\n");
-      return { capture, reused: false };
+      if (!best || extraction.menu.length > best.extraction.menu.length) {
+        best = {
+          id,
+          sourceUrl: url,
+          fetchedAt: new Date().toISOString(),
+          provider: "firecrawl",
+          firecrawl,
+          extraction,
+          place: { id, name: place.name, address: place.address },
+          discovery: { how, website: place.website },
+        };
+      }
+      if (extraction.menu.length >= ENOUGH_ITEMS) break;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
+  }
+  if (best) {
+    await mkdir(CACHE, { recursive: true });
+    await writeFile(join(CACHE, `${id}.json`), JSON.stringify(best, null, 2) + "\n");
+    return { capture: best, reused: false };
   }
   throw new Error(`Couldn’t read a menu for ${place.name} (${lastError}).`);
 }
