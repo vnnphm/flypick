@@ -5,7 +5,7 @@
  * target's visual drive. These are menu features, not measured aromas, and not a quality rating.
  * Price, rating, restaurant name and id are never used.
  */
-import type { ExtractedRestaurant, MenuCues } from "../contracts.ts";
+import type { ExtractedRestaurant, MenuCues, MenuItem } from "../contracts.ts";
 
 export const ENCODER_VERSION = "menu-cues-v1";
 
@@ -40,15 +40,23 @@ const PATTERNS = Object.fromEntries(
   Object.entries(KEYWORDS).map(([cue, words]) => [cue, new RegExp(`\\b(${words.map(escape).join("|")})\\b`, "i")]),
 ) as Record<keyof MenuCues, RegExp>;
 
+/** Which cues one menu item matches, and the words that matched (for display). */
+export function itemCues(item: MenuItem): { cue: keyof MenuCues; word: string }[] {
+  const text = [item.name, item.description ?? "", ...item.ingredients].join(" ");
+  const out: { cue: keyof MenuCues; word: string }[] = [];
+  for (const cue of Object.keys(PATTERNS) as (keyof MenuCues)[]) {
+    const m = PATTERNS[cue].exec(text);
+    if (m) out.push({ cue, word: m[1].toLowerCase() });
+  }
+  return out;
+}
+
 export function encodeMenu(extraction: ExtractedRestaurant): { cues: MenuCues; salience: number } {
   const items = extraction.menu.slice(0, MAX_ITEMS);
   if (items.length === 0) throw new Error("menu has no items; refusing to encode an empty menu");
   const cues: MenuCues = { sweet: 0, fruit: 0, fermented: 0 };
   for (const item of items) {
-    const text = [item.name, item.description ?? "", ...item.ingredients].join(" ");
-    for (const cue of Object.keys(cues) as (keyof MenuCues)[]) {
-      if (PATTERNS[cue].test(text)) cues[cue] += 1;
-    }
+    for (const { cue } of itemCues(item)) cues[cue] += 1;
   }
   for (const cue of Object.keys(cues) as (keyof MenuCues)[]) cues[cue] /= items.length;
   const combined = WEIGHTS.sweet * cues.sweet + WEIGHTS.fruit * cues.fruit + WEIGHTS.fermented * cues.fermented;

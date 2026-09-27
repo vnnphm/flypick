@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { decode, type AdapterInfo, type BrainAdapter, type MotorFrame, type SensoryFrame } from "../../src/brain/adapter.ts";
-import { encodeMenu } from "../../src/data/encoder.ts";
+import { encodeMenu, itemCues } from "../../src/data/encoder.ts";
 import { validateExtraction } from "../../src/data/schema.ts";
 import { CONFIG, type SimConfig } from "../../src/simulation/config.ts";
 import { Decision } from "../../src/simulation/decision.ts";
@@ -159,6 +159,19 @@ await check("a searched place's menu keeps its place identity; an empty menu is 
   assert.equal(snap.address, "1 Main St");
   assert.throws(() => placeSnapshot({ ...capture, place: undefined }, "live"));
   assert.throws(() => placeSnapshot({ ...capture, extraction: { name: null, menu: [] } }, "live"));
+});
+
+await check("the scanned-items panel's per-item cue tags add up to the encoder's cue shares", () => {
+  const menu = [
+    { name: "Lemon tart", description: "with honey", priceText: null, ingredients: [], evidenceText: "" },
+    { name: "Kimchi fried rice", description: null, priceText: null, ingredients: ["pickled radish"], evidenceText: "" },
+    { name: "Plain rice", description: null, priceText: null, ingredients: [], evidenceText: "" },
+  ];
+  const { cues } = encodeMenu({ name: null, menu });
+  for (const cue of ["sweet", "fruit", "fermented"] as const) {
+    assert.equal(menu.filter((m) => itemCues(m).some((c) => c.cue === cue)).length / menu.length, cues[cue]);
+  }
+  assert.deepEqual(itemCues(menu[1]), [{ cue: "fermented", word: "kimchi" }]);
 });
 
 // ---- real connectome -------------------------------------------------------------------------

@@ -5,6 +5,7 @@ type SearchController = {
   subscribe(listener: (state: SimulationState) => void): () => void;
   subscribeDetails(listener: (details: SimulationDetails) => void): () => void;
   choosePlace(slot: 0 | 1, place: PlaceResult | null): Promise<void>;
+  reset(): Promise<void>;
 };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -217,12 +218,25 @@ export function mountRestaurantSearch(hostEl: HTMLElement, controller: SearchCon
     if (next !== locked) { locked = next; renderSlots(); }
   });
 
-  return () => {
+  /** After a result: clear both choices (the city stays) and bring the search back into view. */
+  async function startOver() {
+    await controller.reset();
+    for (const i of [0, 1] as const) { clearTimeout(timers[i]); aborts[i]?.abort(); results[i] = []; queries[i] = ''; searchErrors[i] = null; }
+    await controller.choosePlace(0, null);
+    await controller.choosePlace(1, null);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    (city ? slotsEl.querySelector<HTMLInputElement>('#search-0') : cityInput)?.focus({ preventScroll: true });
+  }
+
+  function dispose() {
     disposed = true;
     offDetails();
     offState();
     for (const i of [0, 1]) { clearTimeout(timers[i]); aborts[i]?.abort(); }
     cityAbort?.abort();
     el.remove();
-  };
+  }
+
+  return { dispose, startOver };
 }
