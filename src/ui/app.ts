@@ -1,6 +1,7 @@
 import type { SimulationController, SimulationState } from '../contracts';
 import { createScene } from '../scene/createScene';
 import { mountBrainPanel } from './brainPanel';
+import { mountMenuPanel } from './menuPanel';
 
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
@@ -15,6 +16,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
           <div id="picker-host"></div>
           <div class="world-and-brain" id="stage"><div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div><aside class="brain-host" id="brain-panel" aria-label="Fly Brain telemetry"></aside></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
+          <div class="menu-scan-host" id="menu-panel"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
           <div class="action-bar"><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
           <p class="action-error" id="action-error" role="alert" hidden></p>
@@ -29,6 +31,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   const actionError = get('action-error');
   const sceneContainer = get('scene');
   const brainPanel = mountBrainPanel(get('brain-panel'), controller);
+  const removeMenuPanel = mountMenuPanel(get('menu-panel'), controller);
   let scene: ReturnType<typeof createScene> | undefined;
   try { scene = createScene(sceneContainer, brainPanel.setAmbient); }
   catch (error) {
@@ -164,6 +167,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       disposed = true;
       unsubscribe();
       brainPanel.dispose();
+      removeMenuPanel();
       start.removeEventListener('click', onStart);
       reset.removeEventListener('click', onReset);
       scene?.dispose();

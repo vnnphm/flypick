@@ -83,6 +83,10 @@ Three.js currently produces Vite's advisory warning for a bundle larger than 500
 
 Nothing falls back silently: if Firecrawl or the model fails, the page shows an error and no choice.
 
+**Menu items scanned** (an expandable panel under the restaurants) lists every item each menu
+contributed: name, price, description, ingredients, and tags for the cue words the encoder matched,
+plus each menu's cue shares, resulting signal strength and source link. It fills in as each menu is read.
+
 *Ask the Fly* is always clickable. It starts a run only when both restaurants and the brain are ready; otherwise it says what is still missing (or to press Reset after a result).
 
 ## Picking restaurants (search mode)
