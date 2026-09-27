@@ -6,7 +6,8 @@ import { mountMenuPanel } from './menuPanel';
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
 /** Render the supplied controller's state without owning movement or decisions. */
-export function mountFlyPick(root: HTMLElement, controller: SimulationController, options: { search?: boolean } = {}) {
+export function mountFlyPick(root: HTMLElement, controller: SimulationController,
+  options: { search?: boolean; onPickAgain?: () => Promise<void> } = {}) {
   root.innerHTML = `
     <div class="app-shell">
       <header class="topbar"><a class="brand" href="./" aria-label="FlyPick home">${flyIcon}<span>flypick<span class="brand-dot">.</span></span></a><span class="topbar-note">A little help with a big little decision.</span><span class="mode-badge" id="mode"></span></header>
@@ -18,7 +19,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="menu-scan-host" id="menu-panel"></div>
           <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
-          <div class="action-bar"><div class="buttons"><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
+          <div class="action-bar"><div class="buttons"><button class="button secondary" id="repick" type="button" hidden>Pick different restaurants</button><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
           <p class="action-error" id="action-error" role="alert" hidden></p>
         </section>
         <footer class="footer"><p id="disclosure"></p><details><summary>How the fly picks</summary><p>The live experience maps menu features to sensory signals for a simulated fly brain. The simulation supplies the fly’s position and the final result. Wings and lighting are decorative.</p><p>These designed signals do not measure food quality or biological food preference. Your shortlist stays your choice.</p></details></footer>
@@ -28,6 +29,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   const get = <T extends HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
   const start = get<HTMLButtonElement>('start');
   const reset = get<HTMLButtonElement>('reset');
+  const repick = get<HTMLButtonElement>('repick');
   const actionError = get('action-error');
   const sceneContainer = get('scene');
   const brainPanel = mountBrainPanel(get('brain-panel'), controller);
@@ -51,6 +53,8 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   function refreshControls() {
     // Ask the Fly stays clickable; when a run can't start yet, clicking explains why instead
     reset.disabled = pending || !state;
+    repick.hidden = !options.onPickAgain || !state || !['selected', 'no-choice', 'error'].includes(state.status);
+    repick.disabled = pending;
     start.setAttribute('aria-busy', String(pending));
   }
   function update(next: SimulationState) {
@@ -157,8 +161,25 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     void act('start');
   };
   const onReset = () => { if (!reset.disabled) void act('reset'); };
+  const onRepick = async () => {
+    if (pending || disposed || !options.onPickAgain) return;
+    pending = true;
+    actionError.hidden = true;
+    refreshControls();
+    try { await options.onPickAgain(); }
+    catch {
+      if (!disposed) {
+        actionError.textContent = 'Couldn’t clear the restaurants. Please try again.';
+        actionError.hidden = false;
+      }
+    } finally {
+      pending = false;
+      if (!disposed) refreshControls();
+    }
+  };
   start.addEventListener('click', onStart);
   reset.addEventListener('click', onReset);
+  repick.addEventListener('click', onRepick);
   const unsubscribe = controller.subscribe(update);
   return {
     previewHost: get('preview-tools'),
@@ -170,6 +191,7 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
       removeMenuPanel();
       start.removeEventListener('click', onStart);
       reset.removeEventListener('click', onReset);
+      repick.removeEventListener('click', onRepick);
       scene?.dispose();
       root.replaceChildren();
     },

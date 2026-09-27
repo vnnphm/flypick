@@ -106,6 +106,9 @@ plus each menu's cue shares, resulting signal strength and source link. It fills
    6 hours, labeled “saved”.
 4. **Map and run.** The arena appears once both menus are read and the brain is loaded; the rest of the
    flow (*Ask the Fly*, result, Reset) is unchanged. Change a place any time you're not mid-run.
+5. **After a result.** *Reset* asks again with the same two places. *Pick different restaurants*
+   (shown after a pick, no-choice or error) clears both choices, keeps the city, and returns to the
+   search with the first box focused.
 
 The read-only **Fly Brain** panel appears with the map: beside it on wide screens and below it
 on smaller screens (collapsed on mobile). It shows neural steering, measured firing rates,

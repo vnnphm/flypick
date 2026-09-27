@@ -33,10 +33,11 @@ if (mode === 'preview') {
     mode: runMode,
     menuSource: search ? 'search' : menus === 'cached' ? 'cached' : 'live',
   });
-  const app = mountFlyPick(root, controller, { search });
-  const removeSearch = search ? mountRestaurantSearch(app.pickerHost, controller) : () => {};
+  let picker: ReturnType<typeof mountRestaurantSearch> | undefined;
+  const app = mountFlyPick(root, controller, { search, onPickAgain: search ? () => picker!.startOver() : undefined });
+  picker = search ? mountRestaurantSearch(app.pickerHost, controller) : undefined;
   import.meta.hot?.dispose(() => {
-    removeSearch();
+    picker?.dispose();
     app.dispose();
     controller.dispose();
   });
