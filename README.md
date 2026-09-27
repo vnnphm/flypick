@@ -87,6 +87,8 @@ Nothing falls back silently: if Firecrawl or the model fails, the page shows an 
 contributed: name, price, description, ingredients, and tags for the cue words the encoder matched,
 plus each menu's cue shares, resulting signal strength and source link. It fills in as each menu is read.
 
+In search mode the status line under the arena stays hidden while the app is only waiting for you to pick places; it appears while a menu is being read, once both places are chosen, and during and after a run.
+
 *Ask the Fly* is always clickable. It starts a run only when both restaurants and the brain are ready; otherwise it says what is still missing (or to press Reset after a result).
 
 ## Picking restaurants (search mode)
@@ -106,7 +108,7 @@ plus each menu's cue shares, resulting signal strength and source link. It fills
    6 hours, labeled “saved”.
 4. **Map and run.** The arena appears once both menus are read and the brain is loaded; the rest of the
    flow (*Ask the Fly*, result, Reset) is unchanged. Change a place any time you're not mid-run.
-5. **After a result.** *Reset* asks again with the same two places. *Pick different restaurants*
+5. **After a result.** *Reset* asks again with the same two places. *Pick something else*
    (shown after a pick, no-choice or error) clears both choices, keeps the city, and returns to the
    search with the first box focused.
 

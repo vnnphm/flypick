@@ -2,6 +2,7 @@ import type { SimulationController, SimulationState } from '../contracts';
 import { createScene } from '../scene/createScene';
 import { mountBrainPanel } from './brainPanel';
 import { mountMenuPanel } from './menuPanel';
+import type { DetailsSource } from './brainTelemetry.ts';
 
 const flyIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="10" ry="6" transform="rotate(30 12 16)" fill="currentColor" opacity=".3"/><ellipse cx="28" cy="16" rx="10" ry="6" transform="rotate(-30 28 16)" fill="currentColor" opacity=".3"/><ellipse cx="20" cy="24" rx="5" ry="10" fill="currentColor"/><circle cx="20" cy="12" r="5" fill="currentColor"/></svg>`;
 
@@ -10,16 +11,16 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   options: { search?: boolean; onPickAgain?: () => Promise<void> } = {}) {
   root.innerHTML = `
     <div class="app-shell">
-      <header class="topbar"><a class="brand" href="./" aria-label="FlyPick home">${flyIcon}<span>flypick<span class="brand-dot">.</span></span></a><span class="topbar-note">A little help with a big little decision.</span><span class="mode-badge" id="mode"></span></header>
+      <header class="topbar"><a class="brand" href="./" aria-label="FlyPick home">${flyIcon}<span>flypick<span class="brand-dot">.</span></span></a><span class="mode-badge" id="mode"></span></header>
       <main>
-        <section class="intro" aria-labelledby="title"><p class="eyebrow">Your shortlist. A different perspective.</p><h1 id="title">Two good options.<br><em>One tiny decision-maker.</em></h1><p>You pick the places. Let a little curiosity take it from here.</p></section>
+        <section class="intro" aria-labelledby="title"><h1 id="title">What you wanna eat?<br><em>idk let the fly pick.</em></h1></section>
         <section class="experience" aria-label="Restaurant choice arena">
           <div id="picker-host"></div>
           <div class="world-and-brain" id="stage"><div class="stage"><div id="scene" role="img" aria-label="A small fly with a locator ring in an explorable field with two restaurant storefronts, scattered fruit patches, grasses, plants, and rocks."></div></div><aside class="brain-host" id="brain-panel" aria-label="Fly Brain telemetry"></aside></div>
           <div class="restaurant-cards" id="restaurants" aria-label="Your restaurant options"></div>
           <div class="menu-scan-host" id="menu-panel"></div>
-          <div class="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
-          <div class="action-bar"><div class="buttons"><button class="button secondary" id="repick" type="button" hidden>Pick different restaurants</button><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
+          <div class="decision" id="decision" aria-live="polite" aria-atomic="true"><p class="eyebrow" id="status-label"></p><h2 id="status-title"></h2><p id="status-message"></p></div>
+          <div class="action-bar"><div class="buttons"><button class="button secondary" id="repick" type="button" hidden>Pick something else</button><button class="button secondary" id="reset" type="button">Reset</button><button class="button primary" id="start" type="button">Ask the Fly <span aria-hidden="true">↗</span></button></div></div>
           <p class="action-error" id="action-error" role="alert" hidden></p>
         </section>
         <footer class="footer"><p id="disclosure"></p><details><summary>How the fly picks</summary><p>The live experience maps menu features to sensory signals for a simulated fly brain. The simulation supplies the fly’s position and the final result. Wings and lighting are decorative.</p><p>These designed signals do not measure food quality or biological food preference. Your shortlist stays your choice.</p></details></footer>
@@ -70,8 +71,8 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
     }
     root.dataset.status = next.status;
     root.dataset.mode = next.mode;
-    get('mode').textContent = next.mode === 'mock' ? 'Mock mode · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'Live simulation';
-    get('disclosure').textContent = next.mode === 'mock' ? 'Mock mode. Movement and results are synthetic; no live brain is running.' : next.mode === 'replay' ? 'Recorded run. Original inputs and outcome; no new decision is being made.' : 'Simulated fly brain. Simplified movement. Your restaurant shortlist.';
+    get('mode').textContent = next.mode === 'mock' ? 'Mock mode · no live brain' : next.mode === 'replay' ? 'Recorded run · replay' : 'LIVE FLY REACTION 🔴 ';
+    get('disclosure').textContent = next.mode === 'mock' ? 'Mock mode. Movement and results are synthetic; no live brain is running.' : next.mode === 'replay' ? 'Recorded run. Original inputs and outcome; no new decision is being made.' : 'Simulated fly brain.';
     const key = JSON.stringify(next.restaurants.map(r => [r.id, r.name]));
     if (key !== cardsKey) {
       cardsKey = key;
@@ -180,13 +181,26 @@ export function mountFlyPick(root: HTMLElement, controller: SimulationController
   start.addEventListener('click', onStart);
   reset.addEventListener('click', onReset);
   repick.addEventListener('click', onRepick);
-  const unsubscribe = controller.subscribe(update);
+  // search mode: while the app is only waiting for the user to pick places, keep the status block
+  // hidden; show it once something is happening (a menu being read, or both places chosen)
+  let busy = false;
+  function refreshDecision() {
+    get('decision').hidden = !!options.search && state?.status === 'loading' && !busy;
+  }
+  const unsubscribeSlots = options.search
+    ? (controller as DetailsSource).subscribeDetails?.(d => {
+      const next = d.slots.some(s => s.status === 'reading') || (d.slots.length > 0 && d.slots.every(s => s.place));
+      if (next !== busy) { busy = next; refreshDecision(); }
+    }) ?? (() => {})
+    : () => {};
+  const unsubscribe = controller.subscribe(next => { update(next); refreshDecision(); });
   return {
     previewHost: get('preview-tools'),
     pickerHost: get('picker-host'),
     dispose() {
       disposed = true;
       unsubscribe();
+      unsubscribeSlots();
       brainPanel.dispose();
       removeMenuPanel();
       start.removeEventListener('click', onStart);
